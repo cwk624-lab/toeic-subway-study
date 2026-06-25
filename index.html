@@ -530,118 +530,109 @@ const WORDS = [
   { word: "recently", meaning: "최근에", example: "recently detected many flaws in the project" },
   { word: "briefly", meaning: "간단히", example: "briefly summarize the various sales strategies" },
   { word: "dramatically", meaning: "극적으로", example: "increase survey response rates dramatically" },
+  // RC 어휘 추가
+  { word: "despite", meaning: "~에도 불구하고 (전치사)", example: "Despite the rain, the event was held outdoors." },
+  { word: "although", meaning: "~이지만 (접속사)", example: "Although it was raining, the event was held." },
+  { word: "however", meaning: "그러나 (접속부사)", example: "The project was delayed; however, it was completed." },
+  { word: "therefore", meaning: "따라서 (접속부사)", example: "The budget was cut; therefore, we reduced staff." },
+  { word: "furthermore", meaning: "게다가 (접속부사)", example: "The product is affordable; furthermore, it is durable." },
+  { word: "nevertheless", meaning: "그럼에도 불구하고", example: "It was expensive; nevertheless, we bought it." },
+  { word: "whereas", meaning: "반면에 (접속사)", example: "John prefers coffee, whereas Mary prefers tea." },
+  { word: "unless", meaning: "~하지 않으면 (접속사)", example: "Unless you call ahead, the office will be closed." },
+  { word: "provided that", meaning: "~라면 (조건 접속사)", example: "You can leave early provided that you finish the report." },
+  { word: "in order to", meaning: "~하기 위해서", example: "She studied hard in order to pass the exam." },
+  { word: "so that", meaning: "~하도록 (목적)", example: "He spoke slowly so that everyone could understand." },
+  { word: "as long as", meaning: "~하는 한", example: "You can stay as long as you follow the rules." },
+  { word: "prior to", meaning: "~ 이전에", example: "Please submit the form prior to the deadline." },
+  { word: "subsequent to", meaning: "~ 이후에", example: "Subsequent to the merger, profits increased." },
+  { word: "owing to", meaning: "~ 때문에 (전치사)", example: "Owing to bad weather, the flight was cancelled." },
+  { word: "due to", meaning: "~ 때문에 (전치사)", example: "The delay was due to technical difficulties." },
+  { word: "instead of", meaning: "~ 대신에", example: "Use email instead of calling to save time." },
+  { word: "in addition to", meaning: "~ 외에도", example: "In addition to salary, employees receive bonuses." },
+  { word: "regardless of", meaning: "~에 관계없이", example: "Regardless of the weather, the show will go on." },
+  { word: "as a result of", meaning: "~ 결과로", example: "As a result of the campaign, sales increased." },
+  { word: "based on", meaning: "~에 근거하여", example: "The decision was based on market research." },
+  { word: "according to", meaning: "~에 따르면", example: "According to the report, profits rose by 20%." },
+  { word: "in terms of", meaning: "~의 측면에서", example: "In terms of quality, this product is superior." },
+  { word: "with regard to", meaning: "~에 관하여", example: "With regard to your inquiry, please see below." },
+  { word: "on behalf of", meaning: "~을 대표하여", example: "I am writing on behalf of our company." },
 ];
 
 // ===================== 데이터: RC =====================
 const RC_QUIZZES = [
-  { chapter: "최빈출 동사 어휘 1", question: "The new policies _____ all staff to wear masks.", options: ["organize", "mandate", "specify", "extend"], answer: "mandate", explanation: "mandate: 지시하다, 의무화하다" },
-  { chapter: "최빈출 동사 어휘 1", question: "We're _____ 15% discount thanks to appreciation.", options: ["postponing", "extending", "discontinuing", "discouraging"], answer: "extending", explanation: "extend: 연장하다, 늘이다 (=renew, lengthen)" },
-  { chapter: "최빈출 동사 어휘 1", question: "Please _____ to this email to let me know about your availability.", options: ["answer", "respond", "address", "attend"], answer: "respond", explanation: "respond + to: ~에 응답하다 (자동사)" },
-  { chapter: "최빈출 동사 어휘 1", question: "The seats are _____ for managements.", options: ["reserved", "permitted", "consulted", "required"], answer: "reserved", explanation: "reserve: 예약하다, 잡아두다" },
-  { chapter: "최빈출 동사 어휘 1", question: "I trust that you will _____ to this matter immediately.", options: ["attend to", "arrange", "commend", "grant"], answer: "attend to", explanation: "attend to: 주의를 기울이다, 처리하다" },
-  { chapter: "최빈출 동사 어휘 2", question: "help _____ the manufacturing process.", options: ["proceed", "accelerate", "describe", "restore"], answer: "accelerate", explanation: "accelerate: 촉진하다, 가속하다 (=expedite, speed up)" },
-  { chapter: "최빈출 동사 어휘 2", question: "The acquisition is a _____ from Machflier's typical business tactics.", options: ["departure", "delivery", "restoration", "implementation"], answer: "departure", explanation: "depart: 출발하다 / departure: 벗어남, 일탈" },
-  { chapter: "최빈출 동사 어휘 2", question: "NT's new fax machine is _____ of all the company's industrial products.", options: ["representation", "representative", "represent", "represented"], answer: "representative", explanation: "representative (형용사): 대표적인, 전형적인" },
-  { chapter: "최빈출 동사 어휘 2", question: "_____ a policy / regulations / a plan / a strategy.", options: ["conduct", "implement", "attend", "restore"], answer: "implement", explanation: "implement: 실행하다 (=carry out), 정책·계획과 함께 사용" },
-  { chapter: "최빈출 동사 어휘 2", question: "Please do not _____ to telephone me.", options: ["hesitate", "attempt", "persist", "retain"], answer: "hesitate", explanation: "hesitate + to V: 주저하다" },
-  { chapter: "최빈출 동사 어휘 3", question: "The science fair competition will _____ the projects of high school students.", options: ["feature", "recruit", "escort", "load"], answer: "feature", explanation: "feature: 특색으로 삼다, (특징으로) 선보이다" },
-  { chapter: "최빈출 동사 어휘 3", question: "They will _____ thorough investigation.", options: ["fulfill", "implement", "conduct", "recruit"], answer: "conduct", explanation: "conduct an investigation: 조사를 수행하다" },
-  { chapter: "최빈출 동사 어휘 3", question: "A record 2000 people _____ in the 5km Race this year.", options: ["participated", "attended", "witnessed", "demonstrated"], answer: "participated", explanation: "record (형용사): 기록적인 / participate in: 참가하다" },
-  { chapter: "최빈출 동사 어휘 3", question: "_____ a younger demographic to the tourist site.", options: ["Attract", "Unveil", "Acknowledge", "Face"], answer: "Attract", explanation: "attract: 끌다, 유치하다 (=draw)" },
-  { chapter: "최빈출 동사 어휘 3", question: "Please _____ in seeking a replacement.", options: ["persist", "consider", "demonstrate", "load"], answer: "persist", explanation: "persist in + ~ing: 고집하다, 우기다" },
-  { chapter: "최빈출 동사 어휘 4", question: "Delays at Incheon International Airport are becoming more _____.", options: ["frequent", "repetitive", "selective", "ongoing"], answer: "frequent", explanation: "frequent: 빈번한 (지연이 잦아짐)" },
-  { chapter: "최빈출 동사 어휘 4", question: "She doesn't _____ of me resigning from my job.", options: ["approve", "prevent", "suspend", "settle"], answer: "approve", explanation: "approve of ~: ~에 대해 찬성하다 (자동사)" },
-  { chapter: "최빈출 동사 어휘 4", question: "Please settle your _____ before leaving.", options: ["bill", "review", "claim", "dispute"], answer: "bill", explanation: "settle: 지불하다 / settle a bill: 계산하다" },
-  { chapter: "최빈출 동사 어휘 4", question: "_____ A from ~ing: 방지하다, 막다.", options: ["Prevent", "Remove", "Suspend", "Protect"], answer: "Prevent", explanation: "prevent A from ~ing = stop/keep/prohibit/forbid/ban A from ~ing" },
-  { chapter: "최빈출 동사 어휘 4", question: "n. suspension: 연기, 보류 → 동사형은?", options: ["suspend", "review", "protect", "settle"], answer: "suspend", explanation: "suspend: 중지하다, 연기하다 (=temporarily stop, cease, postpone)" },
-  { chapter: "최빈출 동사 어휘 5", question: "If you need _____ with research, (A) assistant (B) assistance", options: ["assistant", "assistance", "assist", "assisted"], answer: "assistance", explanation: "assistance: 도움, 지원 (불가산) / assistant: 조수 (가산)" },
-  { chapter: "최빈출 동사 어휘 5", question: "_____ a safety inspection / tests / intensive training.", options: ["undergo", "handle", "instruct", "contain"], answer: "undergo", explanation: "undergo: 받다, 겪다 (안 좋은 일, 변화)" },
-  { chapter: "최빈출 동사 어휘 5", question: "regret + to V vs regret + Ving: 차이는?", options: ["to V: 미래성, Ving: 과거성", "to V: 과거성, Ving: 미래성", "둘 다 같음", "to V만 사용"], answer: "to V: 미래성, Ving: 과거성", explanation: "regret to V: ~하려는 것이 유감 / regret Ving: ~한 것이 유감" },
-  { chapter: "최빈출 동사 어휘 5", question: "_____ employees on how to make a speech.", options: ["Instruct", "Support", "Handle", "Contain"], answer: "Instruct", explanation: "instruct: 교육하다" },
-  { chapter: "최빈출 동사 어휘 5", question: "benefit [자] from ~: ~로부터 득을 보다 / benefit [타]: ~에게 ___이 되다", options: ["이익", "손해", "지원", "방해"], answer: "이익", explanation: "benefit ~에게 이익이 되다 / benefit from ~에서 득을 보다" },
-  { chapter: "최빈출 명사 어휘 1", question: "The building has direct _____ to a small beach.", options: ["access", "approach", "initiative", "proximity"], answer: "access", explanation: "access to: ~에 접근, 입장 / approach to: ~에 접근 방법" },
-  { chapter: "최빈출 명사 어휘 1", question: "a research _____: 연구 보조금", options: ["grant", "deposit", "budget", "fee"], answer: "grant", explanation: "grant (명사): 보조금 / grant (동사): 수여하다, 승인하다" },
-  { chapter: "최빈출 명사 어휘 1", question: "within _____: 예산을 초과하지 않고", options: ["budget", "charge", "fee", "fare"], answer: "budget", explanation: "budget: 예산 / within budget: 예산 내에서" },
-  { chapter: "최빈출 명사 어휘 1", question: "pay the admission _____", options: ["fee", "fare", "charge", "cost"], answer: "fee", explanation: "fee: 서비스에 대한 요금 / fare: 교통 요금" },
-  { chapter: "최빈출 명사 어휘 1", question: "reduce the bus _____ for students", options: ["fare", "fee", "charge", "cost"], answer: "fare", explanation: "fare: 교통수단의 운임, 요금" },
-  { chapter: "최빈출 명사 어휘 2", question: "If you need _____ with research: (A) assistant (B) assistance", options: ["assistance", "assistant", "assist", "assisting"], answer: "assistance", explanation: "assistance (불가산): 도움 / assistant (가산): 조수" },
-  { chapter: "최빈출 명사 어휘 2", question: "lead to significant _____ in sales", options: ["rise", "raise", "arise", "arouse"], answer: "rise", explanation: "rise (명사): 증가 / raise (동사): 올리다, 인상하다" },
-  { chapter: "최빈출 명사 어휘 2", question: "in _____ of ~: ~의 부재 시에", options: ["absence", "session", "transition", "priority"], answer: "absence", explanation: "in one's absence = during one's absence" },
-  { chapter: "최빈출 명사 어휘 2", question: "This restaurant had a delicious _____ of Korean cuisine.", options: ["variety", "variation", "various", "vary"], answer: "variety", explanation: "variety: 다양성 / variation: 변화" },
-  { chapter: "최빈출 명사 어휘 2", question: "top _____ 최우선권", options: ["priority", "quality", "feasibility", "session"], answer: "priority", explanation: "priority: 우선권 / top priority: 최우선 사항" },
-  { chapter: "최빈출 명사 어휘 3", question: "the first _____ of the project: (A) phase (B) trace", options: ["phase", "trace", "offer", "venture"], answer: "phase", explanation: "phase: 단계 (=stage)" },
-  { chapter: "최빈출 명사 어휘 3", question: "make (schedule) an _____: 업무 관련 약속을 잡다", options: ["appointment", "anniversary", "deadline", "vendor"], answer: "appointment", explanation: "appointment: 약속, 예약, 임명" },
-  { chapter: "최빈출 명사 어휘 3", question: "seek _____: (A) employment (B) employee", options: ["employment", "employee", "employer", "employ"], answer: "employment", explanation: "employment: 고용 / employee: 직원" },
-  { chapter: "최빈출 명사 어휘 3", question: "change the _____ for submitting the proposals", options: ["deadline", "disruption", "distribution", "venture"], answer: "deadline", explanation: "deadline: 마감 시간 (=last day to submit, due date)" },
-  { chapter: "최빈출 명사 어휘 3", question: "in _____ of ~을 축하하여", options: ["celebration", "observance", "honor", "reply"], answer: "celebration", explanation: "in celebration of = in commemoration of" },
-  { chapter: "최빈출 명사 어휘 4", question: "earn a special promotion by showing _____", options: ["persistence", "discretion", "qualification", "completion"], answer: "persistence", explanation: "persistence: 끈기, 고집" },
-  { chapter: "최빈출 명사 어휘 4", question: "at the _____ of ~의 재량대로", options: ["discretion", "commitment", "extension", "acquisition"], answer: "discretion", explanation: "discretion: 재량 / at the discretion of: ~의 재량대로" },
-  { chapter: "최빈출 명사 어휘 4", question: "come with a 90-day _____", options: ["warranty", "surplus", "boost", "completion"], answer: "warranty", explanation: "warranty: 보증서, 보증 기간 (=guarantee)" },
-  { chapter: "최빈출 명사 어휘 4", question: "result in a _____ in profits", options: ["boost", "surplus", "persistence", "indicator"], answer: "boost", explanation: "boost: 증대, 상승" },
-  { chapter: "최빈출 명사 어휘 4", question: "discuss the firm's newest _____", options: ["acquisition", "itinerary", "extension", "procedure"], answer: "acquisition", explanation: "acquisition: 인수, 습득" },
-  { chapter: "최빈출 형용사 어휘 1", question: "_____ back issues of the popular magazine will be offered. (A) Limited (B) Limiting", options: ["Limited", "Limiting", "Limit", "Limitation"], answer: "Limited", explanation: "limited: 한정된 / limiting: 제한하는" },
-  { chapter: "최빈출 형용사 어휘 1", question: "If you take this class, you can be _____ in using the computer.", options: ["proficient", "practical", "productive", "prominent"], answer: "proficient", explanation: "practical: 현실적인 / proficient: 능숙한" },
-  { chapter: "최빈출 형용사 어휘 1", question: "He found the revised guide to be very ________. (A) beneficial (B) beneficiary (C) benefactor", options: ["beneficial", "beneficiary", "benefactor", "benefit"], answer: "beneficial", explanation: "beneficial: 유익한 / beneficiary: 수혜자" },
-  { chapter: "최빈출 형용사 어휘 1", question: "_____ staff: 임시 직원", options: ["temporary", "tentative", "initial", "previous"], answer: "temporary", explanation: "temporary: 임시의 (=tentative 잠정적인)" },
-  { chapter: "최빈출 형용사 어휘 1", question: "retain _____ members of staff", options: ["valued", "outstanding", "reliable", "ambitious"], answer: "valued", explanation: "valued: 소중한 / valued customers: 소중한 고객" },
-  { chapter: "최빈출 형용사 어휘 2", question: "The customer was (satisfied/satisfactory) with the product.", options: ["satisfied", "satisfactory", "satisfying", "satisfaction"], answer: "satisfied", explanation: "satisfied (사람주어): 만족한 / satisfactory (사물주어): 만족스러운" },
-  { chapter: "최빈출 형용사 어휘 2", question: "The exhibit will be open, _____ July 4.", options: ["excluding", "following", "during", "including"], answer: "excluding", explanation: "excluding: ~를 제외하고 (=except for)" },
-  { chapter: "최빈출 형용사 어휘 2", question: "keep the confidential document in a _____ place", options: ["secure", "selective", "ongoing", "complete"], answer: "secure", explanation: "secure: 안전한 / v. secure: 얻어내다, 확보하다" },
-  { chapter: "최빈출 형용사 어휘 2", question: "We can save money by being _____ in the purchase.", options: ["selective", "exclusive", "innovative", "dissatisfied"], answer: "selective", explanation: "selective: 신중한" },
-  { chapter: "최빈출 형용사 어휘 2", question: "available _____ sale / rent", options: ["for", "to", "in", "at"], answer: "for", explanation: "available for sale/rent: 판매/임대 가능한" },
-  { chapter: "최빈출 형용사 어휘 3", question: "for the third _____ year", options: ["successive", "successful", "leading", "definitive"], answer: "successive", explanation: "successive: 연속의 / successful: 성공적인" },
-  { chapter: "최빈출 형용사 어휘 3", question: "It is essential that S + (should) _____", options: ["V (동사원형)", "to V", "Ving", "V-ed"], answer: "V (동사원형)", explanation: "주절에 제안·요청·의무 표현 시 종속절은 (should) + 동사원형" },
-  { chapter: "최빈출 형용사 어휘 3", question: "require work experience in a _____ field", options: ["related", "relevant", "routine", "reluctant"], answer: "related", explanation: "related to = relevant to: ~와 관련된" },
-  { chapter: "최빈출 형용사 어휘 3", question: "Mr. Hayes put _____ effort into that.", options: ["considerable", "considerate", "comparing", "comparative"], answer: "considerable", explanation: "considerable: 상당한 / considerate: 사려 깊은" },
-  { chapter: "최빈출 형용사 어휘 3", question: "regard Mr. Park as the _____ expert in stock market", options: ["definitive", "definite", "leading", "exceptional"], answer: "definitive", explanation: "definitive: 가장 신뢰할 만한, 결정적인" },
-  { chapter: "최빈출 형용사 어휘 4", question: "follow _____ work standards", options: ["stringent", "reserved", "obsolete", "tentative"], answer: "stringent", explanation: "stringent: 엄격한 (=strict, rigorous, rigid)" },
-  { chapter: "최빈출 형용사 어휘 4", question: "The new laws become effective _____ 1 March", options: ["as of", "as for", "as to", "as with"], answer: "as of", explanation: "as of + 날짜: ~부터 효력 발생" },
-  { chapter: "최빈출 형용사 어휘 4", question: "This position requires a _____ familiarity with the instrument.", options: ["broad", "high", "large", "deep"], answer: "broad", explanation: "broad: 광범위한 (=extensive, comprehensive)" },
-  { chapter: "최빈출 형용사 어휘 4", question: "take steps / measures / _____ : 조치를 취하다", options: ["action", "procedure", "routine", "primary"], answer: "action", explanation: "take steps/measures/action: 조치를 취하다" },
-  { chapter: "최빈출 형용사 어휘 4", question: "take an _____ view of the future", options: ["optimistic", "pessimistic", "urgent", "productive"], answer: "optimistic", explanation: "optimistic: 낙관적인 ↔ pessimistic: 비관적인" },
-  { chapter: "최빈출 부사 어휘 1", question: "Mr. Kay is _____ the most recognized author.", options: ["arguably", "argued", "argument", "argue"], answer: "arguably", explanation: "arguably: 거의 틀림없이 (보통 최상급 앞에 쓰임)" },
-  { chapter: "최빈출 부사 어휘 1", question: "provide a lounge _____ for executives", options: ["exclusively", "particularly", "solely", "especially"], answer: "exclusively", explanation: "exclusively: 오로지, 독점적으로" },
-  { chapter: "최빈출 부사 어휘 1", question: "update the information _____: 정기적으로", options: ["regularly", "routinely", "periodically", "모두 가능"], answer: "모두 가능", explanation: "regularly = periodically = routinely = on a regular basis" },
-  { chapter: "최빈출 부사 어휘 1", question: "_____ designed/made/developed: 특별히", options: ["specifically", "absolutely", "primarily", "solely"], answer: "specifically", explanation: "specifically (specially) designed: 특별히 설계된" },
-  { chapter: "최빈출 부사 어휘 1", question: "work _____ with~: ~와 긴밀히 협력하다", options: ["closely", "nearly", "briefly", "shortly"], answer: "closely", explanation: "closely: 면밀히 / work closely with: ~와 긴밀히 협력하다" },
-  { chapter: "최빈출 부사 어휘 2", question: "Please revise next month's schedule _____.", options: ["accordingly", "consecutively", "relatively", "primarily"], answer: "accordingly", explanation: "accordingly: 상황에 따라서 (=thus, consequently)" },
-  { chapter: "최빈출 부사 어휘 2", question: "be _____ affected by ~: 불리하게 영향을 받다", options: ["adversely", "dramatically", "briefly", "previously"], answer: "adversely", explanation: "adversely: 불리하게" },
-  { chapter: "최빈출 부사 어휘 2", question: "focus _____ on current problems", options: ["primarily", "promptly", "previously", "shortly"], answer: "primarily", explanation: "primarily: 우선, 주로 (=mainly, chiefly)" },
-  { chapter: "최빈출 부사 어휘 2", question: "book a hotel _____ situated downtown", options: ["conveniently", "efficiently", "consistently", "separately"], answer: "conveniently", explanation: "conveniently: 편리하게 / conveniently located" },
-  { chapter: "최빈출 부사 어휘 2", question: "answer the surveys _____: 신속하게", options: ["promptly", "shortly", "briefly", "currently"], answer: "promptly", explanation: "promptly: 지체 없이 (=punctually)" },
-  { chapter: "최빈출 전치사 관련 어구", question: "Tickets may be booked _____ online: 사전에, 미리", options: ["in advance", "at first", "as of", "on schedule"], answer: "in advance", explanation: "in advance: 사전에, 미리 (=ahead of time)" },
-  { chapter: "최빈출 전치사 관련 어구", question: "Helmets must be worn _____ safety regulations.", options: ["in compliance with", "in accordance with", "in response to", "모두 가능"], answer: "모두 가능", explanation: "in compliance with = in accordance with: ~에 따라" },
-  { chapter: "최빈출 전치사 관련 어구", question: "Passengers should claim their baggage _____ arrival.", options: ["on/upon 모두", "at", "in", "by"], answer: "on/upon 모두", explanation: "on arrival = upon arrival = as soon as S+V: 도착하는 즉시" },
-  { chapter: "최빈출 전치사 관련 어구", question: "Ms. Ki will write the letter _____ Crystal Incorporated.", options: ["on behalf of", "at the request of", "in an effort to", "as a result of"], answer: "on behalf of", explanation: "on behalf of: ~을 대표하여" },
-  { chapter: "최빈출 전치사 관련 어구", question: "All train fares will increase _____ next month.", options: ["as of", "as for", "as to", "in accordance with"], answer: "as of", explanation: "as of: ~부터, ~로 (=starting, effective + 날짜)" },
-  { chapter: "최빈출 형용사 관련 어구", question: "be _____ for ~에 대한 책임이 있다", options: ["responsible", "responsive", "reliable", "reluctant"], answer: "responsible", explanation: "be responsible for: ~에 대한 책임이 있다" },
-  { chapter: "최빈출 형용사 관련 어구", question: "The manager has to be _____ to the consumer demand.", options: ["responsive", "responsible", "reliable", "relevant"], answer: "responsive", explanation: "be responsive to: 즉각 반응하는" },
-  { chapter: "최빈출 형용사 관련 어구", question: "Overseas orders are _____ to higher shipping rates.", options: ["subject", "eligible", "willing", "eager"], answer: "subject", explanation: "be subject to: ~의 영향을 받기 쉽다" },
-  { chapter: "최빈출 형용사 관련 어구", question: "The manager is _____ for a promotion.", options: ["eligible", "entitled", "subject", "willing"], answer: "eligible", explanation: "be eligible for: ~할 자격이 있다" },
-  { chapter: "최빈출 형용사 관련 어구", question: "George Payne's book is _____ to be released.", options: ["about", "going", "likely", "supposed"], answer: "about", explanation: "be about to: 막 ~하려고 하다" },
-  { chapter: "최빈출 동사 관련 어구", question: "Tom's Auto Repair Shop _____ in fixing motorcycles.", options: ["specializes", "concludes", "disposes", "relies"], answer: "specializes", explanation: "specialize in: ~을 전문적으로 하다" },
-  { chapter: "최빈출 동사 관련 어구", question: "The issue should be _____ promptly.", options: ["dealt with", "turned in", "set up", "relied on"], answer: "dealt with", explanation: "deal with: ~을 처리하다 / be dealt with: 처리되다" },
-  { chapter: "최빈출 동사 관련 어구", question: "Please _____ your evaluations by the end of today.", options: ["turn in", "set up", "dispose of", "proceed to"], answer: "turn in", explanation: "turn in: 제출하다 (=submit, file, hand in)" },
-  { chapter: "최빈출 동사 관련 어구", question: "Ms. Chambers _____ her assistant to run her office.", options: ["relies on", "specializes in", "concludes with", "disposes of"], answer: "relies on", explanation: "rely on/upon: ~에 의지하다 (=depend on, count on)" },
-  { chapter: "최빈출 동사 관련 어구", question: "The high cost of land _____ the increasing price of homes.", options: ["accounts for", "qualifies for", "waits for", "looks for"], answer: "accounts for", explanation: "account for: ~의 원인이 되다, ~의 비율을 차지하다" },
-  { chapter: "최빈출 명사 관련 어구", question: "Whitehorn Limited issued a _____ to introduce its new CEO.", options: ["press release", "sales figures", "work shift", "contingency plan"], answer: "press release", explanation: "press release: 보도자료 / press conference: 기자회견" },
-  { chapter: "최빈출 명사 관련 어구", question: "Customers have a _____ for shopping via online stores.", options: ["preference", "discussion", "contribution", "confidence"], answer: "preference", explanation: "preference for: ~에 대한 선호" },
-  { chapter: "최빈출 명사 관련 어구", question: "Tenants have an _____ to give one month's notice.", options: ["obligation", "invitation", "failure", "proportion"], answer: "obligation", explanation: "obligation to: ~할 의무" },
-  { chapter: "최빈출 명사 관련 어구", question: "The bakery offers _____ of cakes and pastries.", options: ["an assortment", "a series", "customer loyalty", "job description"], answer: "an assortment", explanation: "an assortment of: 여러 가지의 (=a variety of)" },
-  { chapter: "최빈출 명사 관련 어구", question: "Mr. Jay thanked everyone for their _____ to the charity.", options: ["contributions", "discussions", "preferences", "obligations"], answer: "contributions", explanation: "contribution to: ~에 기부, 공헌" },
-  { chapter: "최빈출 짝을 이루는 표현", question: "Many graduates are having difficulty _____ employment.", options: ["seeking", "looking for", "searching for", "모두 가능"], answer: "모두 가능", explanation: "seek employment = look for a job = search for work" },
-  { chapter: "최빈출 짝을 이루는 표현", question: "[정가] regular price = set price = fixed price = _____ price", options: ["standard/cover 모두", "only standard", "only cover", "list only"], answer: "standard/cover 모두", explanation: "standard price = cover price = list price = net price: 정가" },
-  { chapter: "최빈출 짝을 이루는 표현", question: "Interns usually work _____ senior employees.", options: ["모두 가능", "alongside only", "along with only", "together with only"], answer: "모두 가능", explanation: "alongside = along with = together with: ~와 함께" },
-  { chapter: "최빈출 짝을 이루는 표현", question: "The research team rose to _____ after developing a vaccine.", options: ["fame", "success only", "prominence only", "fame only"], answer: "fame", explanation: "rise to fame: 명성을 날리다" },
-  { chapter: "최빈출 짝을 이루는 표현", question: "Ms. Hearst is doing business _____ Thirst-Co Beverages at the moment.", options: ["with", "for", "in", "on"], answer: "with", explanation: "do business with: ~와 거래하다 / at the moment = now = at present" },
+
+  // ── 품사 구별 ──────────────────────────────────────
+  { type: "품사구별", question: "The manager made a _____ decision to expand the business.", options: ["quickly", "quick", "quickness", "quicken"], answer: "quick", explanation: "명사(decision) 앞에는 형용사가 와야 해요. quick(형용사) → quickly(부사), quickness(명사), quicken(동사)" },
+  { type: "품사구별", question: "The new policy was implemented _____.", options: ["efficient", "efficiency", "efficiently", "efficiencies"], answer: "efficiently", explanation: "동사(was implemented)를 수식하므로 부사가 필요해요. efficiently(부사)" },
+  { type: "품사구별", question: "We need someone with _____ in financial management.", options: ["expert", "expertise", "expertly", "experts"], answer: "expertise", explanation: "전치사 with 뒤에는 명사가 와요. expertise(명사: 전문 지식)" },
+  { type: "품사구별", question: "The _____ of the new product exceeded expectations.", options: ["introduce", "introductory", "introduction", "introductorily"], answer: "introduction", explanation: "관사 The 뒤에는 명사가 와요. introduction(명사: 소개, 도입)" },
+  { type: "품사구별", question: "Employees are _____ encouraged to attend the training.", options: ["strong", "strength", "strengthen", "strongly"], answer: "strongly", explanation: "수동태 동사(are encouraged)를 수식하므로 부사가 필요해요. strongly(부사)" },
+  { type: "품사구별", question: "The company has a _____ reputation in the industry.", options: ["prestige", "prestigious", "prestigiously", "prestige's"], answer: "prestigious", explanation: "명사(reputation) 앞에는 형용사가 와요. prestigious(형용사: 명성 있는)" },
+  { type: "품사구별", question: "The _____ of the contract was discussed at the meeting.", options: ["terminate", "termination", "terminally", "terminal"], answer: "termination", explanation: "관사 The 뒤, 전치사 of 앞에는 명사가 와요. termination(명사: 종료)" },
+
+  // ── 시제 ──────────────────────────────────────────
+  { type: "시제", question: "By the time the manager arrived, the meeting _____.", options: ["already ended", "has already ended", "had already ended", "will already end"], answer: "had already ended", explanation: "과거 기준 이전 완료는 과거완료(had+p.p.)를 써요. 'By the time + 과거' → 과거완료" },
+  { type: "시제", question: "The company _____ its new branch next month.", options: ["opens", "opened", "will open", "had opened"], answer: "will open", explanation: "next month(다음 달)는 미래 시제 신호예요. will + 동사원형" },
+  { type: "시제", question: "She _____ for this company since 2018.", options: ["works", "worked", "has worked", "had worked"], answer: "has worked", explanation: "since + 과거 시점은 현재완료(have+p.p.)와 함께 써요." },
+  { type: "시제", question: "The report _____ before the deadline yesterday.", options: ["is submitted", "was submitted", "has been submitted", "will be submitted"], answer: "was submitted", explanation: "yesterday(어제)는 과거 시제 신호예요. 수동태 과거: was+p.p." },
+  { type: "시제", question: "By next year, the project _____ for five years.", options: ["will run", "runs", "will have run", "has run"], answer: "will have run", explanation: "By next year(미래 기준점)는 미래완료(will have+p.p.)와 함께 써요." },
+  { type: "시제", question: "The factory _____ 500 units per day before the upgrade.", options: ["produces", "produced", "has produced", "will produce"], answer: "produced", explanation: "before the upgrade(과거 사건 이전)는 단순과거를 써요." },
+
+  // ── 능동/수동태 ────────────────────────────────────
+  { type: "능동수동", question: "The annual report _____ by the accounting team every December.", options: ["prepares", "is prepared", "has prepared", "preparing"], answer: "is prepared", explanation: "주어(report)가 준비되는 대상이므로 수동태(be+p.p.)가 필요해요." },
+  { type: "능동수동", question: "The new regulations _____ to all employees next week.", options: ["will announce", "will be announced", "announces", "announced"], answer: "will be announced", explanation: "주어(regulations)가 발표되는 대상이므로 수동태. will be+p.p." },
+  { type: "능동수동", question: "The CEO _____ the quarterly results at the board meeting.", options: ["was presented", "presented", "is presented", "has been presented"], answer: "presented", explanation: "주어(CEO)가 발표하는 주체이므로 능동태. CEO → present(발표하다)" },
+  { type: "능동수동", question: "All applications must _____ by Friday.", options: ["submit", "submitted", "be submitted", "submitting"], answer: "be submitted", explanation: "must 뒤 수동태는 must be+p.p. 형태예요." },
+  { type: "능동수동", question: "The equipment _____ regularly to ensure safety.", options: ["inspects", "is inspecting", "should be inspected", "has inspected"], answer: "should be inspected", explanation: "주어(equipment)가 점검받는 대상이므로 수동태. should be+p.p." },
+
+  // ── 접속사 vs 전치사 ───────────────────────────────
+  { type: "접속사전치사", question: "_____ the heavy rain, the outdoor event was cancelled.", options: ["Although", "Despite", "Because", "Unless"], answer: "Despite", explanation: "뒤에 명사구(the heavy rain)가 오므로 전치사 despite(~에도 불구하고)가 맞아요. Although는 접속사라 절이 필요해요." },
+  { type: "접속사전치사", question: "_____ sales declined last quarter, profits remained stable.", options: ["Despite", "Due to", "Although", "Because of"], answer: "Although", explanation: "뒤에 절(sales declined)이 오므로 접속사 although(~이지만)가 맞아요." },
+  { type: "접속사전치사", question: "The meeting was postponed _____ the manager's absence.", options: ["because", "although", "due to", "whereas"], answer: "due to", explanation: "뒤에 명사구(the manager's absence)가 오므로 전치사 due to(~ 때문에)가 맞아요." },
+  { type: "접속사전치사", question: "_____ the contract expires, we will negotiate a renewal.", options: ["During", "While", "Before", "Despite"], answer: "Before", explanation: "뒤에 절(the contract expires)이 오므로 접속사 before(~하기 전에)가 맞아요." },
+  { type: "접속사전치사", question: "The store will remain open _____ the holiday season.", options: ["while", "although", "during", "unless"], answer: "during", explanation: "뒤에 명사구(the holiday season)가 오므로 전치사 during(~동안)이 맞아요." },
+  { type: "접속사전치사", question: "_____ he was new to the job, he performed excellently.", options: ["Despite", "Due to", "Because of", "Although"], answer: "Although", explanation: "뒤에 절(he was new)이 오므로 접속사 although(비록 ~이지만)가 맞아요." },
+
+  // ── 관계대명사/관계부사 ────────────────────────────
+  { type: "관계사", question: "The employee _____ received the award has been with us for ten years.", options: ["which", "whom", "who", "whose"], answer: "who", explanation: "선행사가 사람(employee)이고 주격이므로 who를 써요." },
+  { type: "관계사", question: "This is the building _____ the conference will be held.", options: ["which", "who", "where", "whom"], answer: "where", explanation: "선행사가 장소(building)이고 뒤에 완전한 절이 오므로 관계부사 where를 써요." },
+  { type: "관계사", question: "The report _____ was submitted yesterday contained errors.", options: ["who", "whom", "which", "where"], answer: "which", explanation: "선행사가 사물(report)이고 주격이므로 which를 써요." },
+  { type: "관계사", question: "The reason _____ she resigned was never disclosed.", options: ["which", "where", "when", "why"], answer: "why", explanation: "선행사가 reason이고 뒤에 완전한 절이 오므로 관계부사 why를 써요." },
+  { type: "관계사", question: "The manager _____ team won the award gave a speech.", options: ["who", "whom", "which", "whose"], answer: "whose", explanation: "선행사가 사람(manager)이고 소유격이므로 whose를 써요." },
+
+  // ── to부정사 vs 동명사 ─────────────────────────────
+  { type: "to부정사동명사", question: "The company decided _____ a new office in Seoul.", options: ["opening", "to open", "open", "opened"], answer: "to open", explanation: "decide는 to부정사를 목적어로 취하는 동사예요. decide to V" },
+  { type: "to부정사동명사", question: "She suggested _____ the meeting to next week.", options: ["to postpone", "postpone", "postponing", "postponed"], answer: "postponing", explanation: "suggest는 동명사를 목적어로 취하는 동사예요. suggest + Ving" },
+  { type: "to부정사동명사", question: "The staff avoided _____ the issue during the presentation.", options: ["to mention", "mention", "mentioning", "mentioned"], answer: "mentioning", explanation: "avoid는 동명사를 목적어로 취하는 동사예요. avoid + Ving" },
+  { type: "to부정사동명사", question: "We expect _____ the project by the end of this month.", options: ["completing", "complete", "to complete", "completed"], answer: "to complete", explanation: "expect는 to부정사를 목적어로 취하는 동사예요. expect to V" },
+  { type: "to부정사동명사", question: "The manager agreed _____ the budget for the new project.", options: ["increasing", "increase", "to increase", "increased"], answer: "to increase", explanation: "agree는 to부정사를 목적어로 취하는 동사예요. agree to V" },
+  { type: "to부정사동명사", question: "They finished _____ the quarterly report yesterday.", options: ["to write", "write", "written", "writing"], answer: "writing", explanation: "finish는 동명사를 목적어로 취하는 동사예요. finish + Ving" },
+
+  // ── 분사/분사구문 ──────────────────────────────────
+  { type: "분사", question: "The documents _____ by the manager need to be revised.", options: ["reviewing", "reviewed", "to review", "reviews"], answer: "reviewed", explanation: "명사(documents)를 수식하고 수동 의미이므로 과거분사(reviewed)를 써요." },
+  { type: "분사", question: "_____ the report, the manager noticed several errors.", options: ["Reviewed", "To review", "Reviews", "Reviewing"], answer: "Reviewing", explanation: "주절 주어(manager)가 검토하는 능동 의미이므로 현재분사(Reviewing)를 써요." },
+  { type: "분사", question: "The package _____ this morning contained important documents.", options: ["delivered", "delivering", "to deliver", "deliver"], answer: "delivered", explanation: "명사(package)를 수식하고 수동 의미이므로 과거분사(delivered)를 써요." },
+  { type: "분사", question: "_____ in 1990, the company has grown significantly.", options: ["Founding", "Founded", "To found", "Found"], answer: "Founded", explanation: "주어(company)가 설립된 수동 의미이므로 과거분사(Founded)로 분사구문을 시작해요." },
+  { type: "분사", question: "The results _____ in the meeting were surprising.", options: ["announcing", "announced", "to announce", "announce"], answer: "announced", explanation: "명사(results)를 수식하고 수동 의미이므로 과거분사(announced)를 써요." },
+
+  // ── 비교급/최상급 ──────────────────────────────────
+  { type: "비교급최상급", question: "This quarter's sales are _____ than last quarter's.", options: ["high", "highest", "higher", "highly"], answer: "higher", explanation: "than이 있으면 비교급(-er / more ~)을 써요." },
+  { type: "비교급최상급", question: "Our new product is _____ efficient than the previous model.", options: ["more", "most", "much", "many"], answer: "more", explanation: "2음절 이상 형용사의 비교급은 more를 앞에 붙여요. more efficient" },
+  { type: "비교급최상급", question: "This is the _____ hotel in the city.", options: ["expensive", "more expensive", "most expensive", "expensively"], answer: "most expensive", explanation: "the + 최상급 + in/of 구조예요. the most expensive" },
+  { type: "비교급최상급", question: "The new system processes data three times _____ than before.", options: ["fast", "faster", "fastest", "fastly"], answer: "faster", explanation: "배수 표현: 배수사 + 비교급 + than. three times faster than" },
+  { type: "비교급최상급", question: "The _____ you practice, the better you become.", options: ["much", "more", "most", "many"], answer: "more", explanation: "The 비교급, the 비교급: ~할수록 더 ~하다. The more ~ the better ~" },
+
+  // ── 가정법 ────────────────────────────────────────
+  { type: "가정법", question: "If the manager _____ the report earlier, we could have met the deadline.", options: ["submits", "submitted", "had submitted", "would submit"], answer: "had submitted", explanation: "가정법 과거완료: If + had+p.p., 주절 + could have+p.p. 과거 사실의 반대를 나타내요." },
+  { type: "가정법", question: "If we _____ more staff, we would complete the project faster.", options: ["have", "had", "had had", "will have"], answer: "had", explanation: "가정법 과거: If + 과거동사, 주절 + would/could+동사원형. 현재 사실의 반대를 나타내요." },
+  { type: "가정법", question: "Had the budget been approved, we _____ hired more employees.", options: ["would", "will have", "would have", "had"], answer: "would have", explanation: "Had+주어+p.p. = If+주어+had+p.p. (가정법 과거완료 도치). 주절은 would have+p.p." },
+  { type: "가정법", question: "If I _____ you, I would accept the job offer.", options: ["am", "was", "were", "had been"], answer: "were", explanation: "가정법 과거에서 be동사는 주어에 관계없이 were를 써요. If I were you" },
+  { type: "가정법", question: "Without your help, the project _____ failed.", options: ["would", "will have", "would have", "had"], answer: "would have", explanation: "Without = If it had not been for (가정법 과거완료). 주절은 would have+p.p." },
 ];
 
 // ===================== 데이터: LC 파일 =====================
+// ※ Part 1(id 1~4)은 오늘의 학습/LC 모드에서 제외 — Part 2~4만 사용
 const LC_FILES = [
-  { id: 1, part: "Part 1", fileName: "part1_01.mp3", title: "Part 1 - 01" },
-  { id: 2, part: "Part 1", fileName: "part1_02.mp3", title: "Part 1 - 02" },
-  { id: 3, part: "Part 1", fileName: "part1_03.mp3", title: "Part 1 - 03" },
-  { id: 4, part: "Part 1", fileName: "part1_04.mp3", title: "Part 1 - 04" },
   { id: 5, part: "Part 2", fileName: "part2_01.mp3", title: "Part 2 - 01" },
   { id: 6, part: "Part 2", fileName: "part2_02.mp3", title: "Part 2 - 02" },
   { id: 7, part: "Part 2", fileName: "part2_03.mp3", title: "Part 2 - 03" },
@@ -827,17 +818,14 @@ function OptionList({ options, picked, answer, onPick, disabled }) {
   );
 }
 
-// ===================== 단어 모드 =====================
-function WordMode({ onHome }) {
+// ===================== 단어 러너(공용) =====================
+function WordRunner({ title, words, onBack, onDone }) {
   const { notify } = useContext(AppCtx);
-  const [deck] = useState(() => shuffle(WORDS));
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState(null);
   const [right, setRight] = useState(0);
   const [wrong, setWrong] = useState(0);
-  const [done, setDone] = useState(false);
-
-  const cur = deck[i];
+  const cur = words[i];
   const opts = useMemo(() => {
     if (!cur) return [];
     const others = shuffle(WORDS.filter((w) => w.meaning !== cur.meaning)).slice(0, 3).map((w) => w.meaning);
@@ -858,37 +846,16 @@ function WordMode({ onHome }) {
       }
     }
   };
-
   const next = () => {
-    if (i + 1 >= deck.length) { setDone(true); return; }
-    setI(i + 1);
-    setPicked(null);
+    if (i + 1 >= words.length) { onDone({ right, wrong }); return; }
+    setI(i + 1); setPicked(null);
   };
-
-  if (done) {
-    return (
-      <div className="app">
-        <Header title="단어 학습 결과" onBack={onHome} />
-        <div className="body">
-          <div className="result">
-            <div className="em">🎉</div>
-            <h2>단어 세션 완료!</h2>
-            <div className="score-row">
-              <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{right}</div><div className="l">맞은 단어</div></div>
-              <div className="sc"><div className="n" style={{ color: "var(--red)" }}>{wrong}</div><div className="l">틀린 단어</div></div>
-            </div>
-            <button className="btn primary" onClick={onHome}>홈으로</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="app">
-      <Header title="📚 단어 학습" onBack={onHome} meta={`${i + 1}/${deck.length}`} />
+      <Header title={title} onBack={onBack} meta={`${i + 1}/${words.length}`} />
       <div className="body">
-        <ProgressBar cur={i + 1} total={deck.length} />
+        <ProgressBar cur={i + 1} total={words.length} />
         <div className="card">
           <div className="word">{cur.word}</div>
           <div className="ex">{cur.example}</div>
@@ -901,7 +868,7 @@ function WordMode({ onHome }) {
         )}
         {picked != null && (
           <button className="btn primary nav-btn-row" onClick={next}>
-            {i + 1 >= deck.length ? "결과 보기" : "다음 단어 →"}
+            {i + 1 >= words.length ? "완료" : "다음 단어 →"}
           </button>
         )}
       </div>
@@ -909,28 +876,38 @@ function WordMode({ onHome }) {
   );
 }
 
-// ===================== RC 모드 =====================
-function RcMode({ onHome }) {
+// ===================== 단어 모드(독립) =====================
+function WordMode({ onHome }) {
+  const [deck] = useState(() => shuffle(WORDS));
+  const [result, setResult] = useState(null);
+  if (result) {
+    return (
+      <div className="app">
+        <Header title="단어 학습 결과" onBack={onHome} />
+        <div className="body">
+          <div className="result">
+            <div className="em">🎉</div>
+            <h2>단어 세션 완료!</h2>
+            <div className="score-row">
+              <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{result.right}</div><div className="l">맞은 단어</div></div>
+              <div className="sc"><div className="n" style={{ color: "var(--red)" }}>{result.wrong}</div><div className="l">틀린 단어</div></div>
+            </div>
+            <button className="btn primary" onClick={onHome}>홈으로</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <WordRunner title="📚 단어 학습" words={deck} onBack={onHome} onDone={setResult} />;
+}
+
+// ===================== RC 러너(공용) =====================
+function RcRunner({ title, quizzes, onBack, onDone }) {
   const { notify } = useContext(AppCtx);
-  const chapters = useMemo(() => {
-    const m = {};
-    RC_QUIZZES.forEach((q) => { m[q.chapter] = (m[q.chapter] || 0) + 1; });
-    return Object.keys(m).map((c) => ({ name: c, count: m[c] }));
-  }, []);
-  const [chapter, setChapter] = useState(null);
-  const [quizzes, setQuizzes] = useState([]);
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState(null);
   const [right, setRight] = useState(0);
   const [wrong, setWrong] = useState(0);
-  const [done, setDone] = useState(false);
-
-  const start = (name) => {
-    setChapter(name);
-    setQuizzes(RC_QUIZZES.filter((q) => q.chapter === name));
-    setI(0); setPicked(null); setRight(0); setWrong(0); setDone(false);
-  };
-
   const cur = quizzes[i];
   const pick = async (opt) => {
     if (picked != null) return;
@@ -940,63 +917,23 @@ function RcMode({ onHome }) {
     } else {
       setWrong((w) => w + 1);
       try {
-        await upsertWrong("wrong_rc", "question", cur.question, { chapter: cur.chapter, question: cur.question, correct_answer: cur.answer, user_answer: opt });
+        await upsertWrong("wrong_rc", "question", cur.question, { chapter: cur.type, question: cur.question, correct_answer: cur.answer, user_answer: opt });
       } catch (e) {
         notify("오답 저장 실패 (Supabase): " + (e.message || e), true);
       }
     }
   };
   const next = () => {
-    if (i + 1 >= quizzes.length) { setDone(true); return; }
+    if (i + 1 >= quizzes.length) { onDone({ right, wrong }); return; }
     setI(i + 1); setPicked(null);
   };
-
-  if (!chapter) {
-    return (
-      <div className="app">
-        <Header title="📖 RC 학습" onBack={onHome} />
-        <div className="body">
-          <div className="list">
-            {chapters.map((c) => (
-              <div key={c.name} className="list-item" onClick={() => start(c.name)}>
-                <div className="li-ic" style={{ background: "var(--blue)" }}>RC</div>
-                <div><div className="li-tt">{c.name}</div><div className="li-sb">{c.count}문제</div></div>
-                <div className="li-ar">›</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (done) {
-    return (
-      <div className="app">
-        <Header title="RC 결과" onBack={() => setChapter(null)} />
-        <div className="body">
-          <div className="result">
-            <div className="em">📖</div>
-            <h2>{chapter} 완료!</h2>
-            <div className="score-row">
-              <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{right}</div><div className="l">정답</div></div>
-              <div className="sc"><div className="n" style={{ color: "var(--red)" }}>{wrong}</div><div className="l">오답</div></div>
-            </div>
-            <button className="btn primary" onClick={() => setChapter(null)}>다른 챕터 선택</button>
-            <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="app">
-      <Header title={chapter} onBack={() => setChapter(null)} meta={`${i + 1}/${quizzes.length}`} />
+      <Header title={title} onBack={onBack} meta={`${i + 1}/${quizzes.length}`} />
       <div className="body">
         <ProgressBar cur={i + 1} total={quizzes.length} />
         <div className="qbox">
-          <span className="qtag">{cur.chapter}</span>
+          <span className="qtag">{cur.type}</span>
           <div className="qtext">{cur.question}</div>
         </div>
         <OptionList options={cur.options} picked={picked} answer={cur.answer} onPick={pick} disabled={picked != null} />
@@ -1007,12 +944,65 @@ function RcMode({ onHome }) {
         )}
         {picked != null && (
           <button className="btn primary nav-btn-row" onClick={next}>
-            {i + 1 >= quizzes.length ? "결과 보기" : "다음 문제 →"}
+            {i + 1 >= quizzes.length ? "완료" : "다음 문제 →"}
           </button>
         )}
       </div>
     </div>
   );
+}
+
+// ===================== RC 모드(독립, 문법 유형별) =====================
+function RcMode({ onHome }) {
+  const types = useMemo(() => {
+    const m = {};
+    RC_QUIZZES.forEach((q) => { m[q.type] = (m[q.type] || 0) + 1; });
+    return Object.keys(m).map((t) => ({ name: t, count: m[t] }));
+  }, []);
+  const [type, setType] = useState(null);
+  const [quizzes, setQuizzes] = useState([]);
+  const [result, setResult] = useState(null);
+
+  const start = (t) => { setType(t); setQuizzes(shuffle(RC_QUIZZES.filter((q) => q.type === t))); setResult(null); };
+
+  if (!type) {
+    return (
+      <div className="app">
+        <Header title="📖 RC 문법" onBack={onHome} />
+        <div className="body">
+          <div className="list">
+            {types.map((c) => (
+              <div key={c.name} className="list-item" onClick={() => start(c.name)}>
+                <div className="li-ic" style={{ background: "var(--blue)" }}>문법</div>
+                <div><div className="li-tt">{c.name}</div><div className="li-sb">{c.count}문제</div></div>
+                <div className="li-ar">›</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (result) {
+    return (
+      <div className="app">
+        <Header title="RC 결과" onBack={() => setType(null)} />
+        <div className="body">
+          <div className="result">
+            <div className="em">📖</div>
+            <h2>{type} 완료!</h2>
+            <div className="score-row">
+              <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{result.right}</div><div className="l">정답</div></div>
+              <div className="sc"><div className="n" style={{ color: "var(--red)" }}>{result.wrong}</div><div className="l">오답</div></div>
+            </div>
+            <button className="btn primary" onClick={() => setType(null)}>다른 유형 선택</button>
+            <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <RcRunner title={type} quizzes={quizzes} onBack={() => setType(null)} onDone={setResult} />;
 }
 
 // ===================== 오디오 플레이어 =====================
@@ -1077,7 +1067,7 @@ function AudioPlayer({ file }) {
 function LcMode({ onHome }) {
   const { notify } = useContext(AppCtx);
   const parts = useMemo(() => {
-    const order = ["Part 1", "Part 2", "Part 3", "Part 4"];
+    const order = ["Part 2", "Part 3", "Part 4"];
     const m = {};
     LC_FILES.forEach((f) => { (m[f.part] = m[f.part] || []).push(f); });
     return order.map((p) => ({ part: p, files: m[p] || [] }));
@@ -1336,6 +1326,138 @@ function WrongNote({ onHome }) {
   );
 }
 
+// ===================== 오늘의 학습 ① LC 러너(2파일, 듣기→풀기) =====================
+function LcRunnerDaily({ files, onBack, onDone }) {
+  const { notify } = useContext(AppCtx);
+  const [fi, setFi] = useState(0);
+  const [round, setRound] = useState(1); // 1: 듣기, 2: 풀기
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [right, setRight] = useState(0);
+  const [wrong, setWrong] = useState(0);
+
+  const file = files[fi];
+  const quizzes = LC_QUIZZES[file.id];
+  const cur = quizzes[i];
+
+  const pick = async (opt) => {
+    if (picked != null) return;
+    setPicked(opt);
+    if (opt === cur.answer) {
+      setRight((r) => r + 1);
+    } else {
+      setWrong((w) => w + 1);
+      try {
+        await upsertWrong("wrong_lc", "question", cur.question, { part: file.part, file_name: file.fileName, question: cur.question, correct_answer: cur.answer, user_answer: opt });
+      } catch (e) {
+        notify("오답 저장 실패 (Supabase): " + (e.message || e), true);
+      }
+    }
+  };
+  const next = () => {
+    if (i + 1 < quizzes.length) { setI(i + 1); setPicked(null); return; }
+    if (fi + 1 < files.length) { setFi(fi + 1); setRound(1); setI(0); setPicked(null); }
+    else { onDone({ right, wrong }); }
+  };
+
+  if (round === 1) {
+    return (
+      <div className="app">
+        <Header title={`오늘의 학습 · LC (3/3)`} onBack={onBack} meta={`파일 ${fi + 1}/${files.length}`} />
+        <div className="body">
+          <div className="round-pills">
+            <div className="round-pill active">1회차 듣기</div>
+            <div className="round-pill">2회차 풀기</div>
+          </div>
+          <AudioPlayer file={file} />
+          <p className="empty" style={{ padding: "20px 10px" }}>먼저 음원을 충분히 들어보세요.</p>
+          <button className="btn blue" onClick={() => { setRound(2); setI(0); setPicked(null); }}>2회차: 문제 풀기 →</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="app">
+      <Header title={`오늘의 학습 · LC (3/3)`} onBack={onBack} meta={`파일 ${fi + 1}/${files.length} · ${i + 1}/${quizzes.length}`} />
+      <div className="body">
+        <div className="round-pills">
+          <div className="round-pill done">1회차 듣기</div>
+          <div className="round-pill active">2회차 풀기</div>
+        </div>
+        <AudioPlayer file={file} />
+        <ProgressBar cur={i + 1} total={quizzes.length} />
+        <div className="qbox">
+          <span className="qtag">{file.part} · Q{i + 1}</span>
+          <div className="qtext">{cur.question}</div>
+        </div>
+        <OptionList options={cur.options} picked={picked} answer={cur.answer} onPick={pick} disabled={picked != null} />
+        {picked != null && (
+          <div className={"explain " + (picked === cur.answer ? "ok" : "no")}>
+            {picked === cur.answer ? "✅ 정답! " : "❌ 오답! 정답: "}<b>{cur.answer}</b><br />{cur.explanation}
+          </div>
+        )}
+        {picked != null && (
+          <button className="btn primary nav-btn-row" onClick={next}>
+            {(i + 1 >= quizzes.length && fi + 1 >= files.length) ? "오늘의 학습 완료 🎉" : (i + 1 >= quizzes.length ? "다음 파일 →" : "다음 →")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===================== 오늘의 학습 ② 메인 흐름 =====================
+const RC_PLAN = [["품사구별", 2], ["시제", 1], ["능동수동", 1], ["접속사전치사", 1], ["관계사", 1], ["to부정사동명사", 1], ["분사", 1], ["비교급최상급", 1], ["가정법", 1]];
+function pickDailyRc() {
+  let out = [];
+  RC_PLAN.forEach(([t, n]) => { out = out.concat(shuffle(RC_QUIZZES.filter((q) => q.type === t)).slice(0, n)); });
+  return shuffle(out);
+}
+function pct(s) { if (!s) return 0; const t = s.right + s.wrong; return t ? Math.round((s.right / t) * 100) : 0; }
+
+function DailyMode({ onHome, goWrong }) {
+  const data = useMemo(() => ({
+    words: shuffle(WORDS).slice(0, 20),
+    rc: pickDailyRc(),
+    lc: shuffle(LC_FILES.filter((f) => f.id >= 5)).slice(0, 2),
+  }), []);
+  const [phase, setPhase] = useState("word");
+  const [stat, setStat] = useState({ word: null, rc: null, lc: null });
+
+  if (phase === "word") {
+    return <WordRunner title="오늘의 학습 · 단어 (1/3)" words={data.words} onBack={onHome}
+      onDone={(s) => { setStat((p) => ({ ...p, word: s })); setPhase("rc"); }} />;
+  }
+  if (phase === "rc") {
+    return <RcRunner title="오늘의 학습 · RC (2/3)" quizzes={data.rc} onBack={onHome}
+      onDone={(s) => { setStat((p) => ({ ...p, rc: s })); setPhase("lc"); }} />;
+  }
+  if (phase === "lc") {
+    return <LcRunnerDaily files={data.lc} onBack={onHome}
+      onDone={(s) => { setStat((p) => ({ ...p, lc: s })); setPhase("summary"); }} />;
+  }
+  // 요약
+  return (
+    <div className="app">
+      <Header title="오늘의 학습 완료" onBack={onHome} />
+      <div className="body">
+        <div className="result">
+          <div className="em">🎉</div>
+          <h2>오늘의 학습 완료!</h2>
+          <p className="msg" style={{ color: "var(--muted)", marginBottom: 8 }}>매일 꾸준히 출퇴근길 한 세션씩 💪</p>
+        </div>
+        <div className="score-row">
+          <div className="sc"><div className="n" style={{ color: "var(--blue)" }}>{pct(stat.word)}%</div><div className="l">단어 ({stat.word.right}/{stat.word.right + stat.word.wrong})</div></div>
+          <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{pct(stat.rc)}%</div><div className="l">RC ({stat.rc.right}/{stat.rc.right + stat.rc.wrong})</div></div>
+          <div className="sc"><div className="n" style={{ color: "var(--orange)" }}>{pct(stat.lc)}%</div><div className="l">LC ({stat.lc.right}/{stat.lc.right + stat.lc.wrong})</div></div>
+        </div>
+        <button className="btn primary" onClick={goWrong}>📝 오답노트 보러가기</button>
+        <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+      </div>
+    </div>
+  );
+}
+
 // ===================== 홈 =====================
 function Home({ go }) {
   return (
@@ -1346,6 +1468,11 @@ function Home({ go }) {
           <h2>토익 지하철 공부</h2>
           <p>출퇴근길에 단어·RC·LC를 가볍게!</p>
         </div>
+        <button className="btn" onClick={() => go("daily")}
+          style={{ background: "linear-gradient(135deg,#1f2a44,#3b82f6)", color: "#fff", padding: "20px", fontSize: "18px", marginBottom: "16px", boxShadow: "0 8px 20px rgba(31,42,68,0.22)" }}>
+          🚇 오늘의 학습 시작
+          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.85, marginTop: 4 }}>단어 20 → RC 10 → LC 2파일</div>
+        </button>
         <div className="home-grid">
           <button className="home-btn" style={{ background: "linear-gradient(135deg,#3b82f6,#2563eb)" }} onClick={() => go("word")}>
             <div className="ic">📚</div><div className="nm">단어 학습</div><div className="ds">{WORDS.length}개 단어</div>
@@ -1384,6 +1511,7 @@ function App() {
   return (
     <AppCtx.Provider value={{ notify }}>
       {screen === "home" && <Home go={go} />}
+      {screen === "daily" && <DailyMode onHome={home} goWrong={() => setScreen("wrong")} />}
       {screen === "word" && <WordMode onHome={home} />}
       {screen === "rc" && <RcMode onHome={home} />}
       {screen === "lc" && <LcMode onHome={home} />}
