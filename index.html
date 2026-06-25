@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>토익 지하철 공부 🚇</title>
+
+<!--
+============================================================
+ Supabase 테이블 생성 SQL (Supabase 대시보드 → SQL Editor 에서 실행)
+============================================================
+
+-- 단어 오답
+create table if not exists wrong_words (
+  id uuid primary key default gen_random_uuid(),
+  word text,
+  meaning text,
+  example text,
+  wrong_count int default 1,
+  last_wrong_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+-- RC 오답
+create table if not exists wrong_rc (
+  id uuid primary key default gen_random_uuid(),
+  chapter text,
+  question text,
+  correct_answer text,
+  user_answer text,
+  wrong_count int default 1,
+  last_wrong_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+-- LC 오답
+create table if not exists wrong_lc (
+  id uuid primary key default gen_random_uuid(),
+  part text,
+  file_name text,
+  question text,
+  correct_answer text,
+  user_answer text,
+  wrong_count int default 1,
+  last_wrong_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+-- 익명(publishable key) 접근 허용 RLS 정책 (학습용)
+-- ★ 오답 "저장"이 동작하려면 INSERT/UPDATE/DELETE 정책이 반드시 있어야 합니다.
+--   (SELECT 정책만 있으면 조회는 되지만 저장 시 42501 RLS 오류가 납니다.)
+alter table wrong_words enable row level security;
+alter table wrong_rc enable row level security;
+alter table wrong_lc enable row level security;
+
+-- 단어
+create policy "ww_select" on wrong_words for select using (true);
+create policy "ww_insert" on wrong_words for insert with check (true);
+create policy "ww_update" on wrong_words for update using (true) with check (true);
+create policy "ww_delete" on wrong_words for delete using (true);
+-- RC
+create policy "wrc_select" on wrong_rc for select using (true);
+create policy "wrc_insert" on wrong_rc for insert with check (true);
+create policy "wrc_update" on wrong_rc for update using (true) with check (true);
+create policy "wrc_delete" on wrong_rc for delete using (true);
+-- LC
+create policy "wlc_select" on wrong_lc for select using (true);
+create policy "wlc_insert" on wrong_lc for insert with check (true);
+create policy "wlc_update" on wrong_lc for update using (true) with check (true);
+create policy "wlc_delete" on wrong_lc for delete using (true);
+============================================================
+-->
+
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --navy: #1f2a44;
+    --navy2: #2c3a5e;
+    --blue: #3b82f6;
+    --green: #22a06b;
+    --orange: #f08c2e;
+    --red: #e2495f;
+    --bg: #f3f5f9;
+    --card: #ffffff;
+    --line: #e4e8f0;
+    --txt: #2a3247;
+    --muted: #8a93a6;
+  }
+  html, body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, sans-serif; background: var(--bg); color: var(--txt); }
+  #root { min-height: 100vh; display: flex; justify-content: center; }
+  .app { width: 100%; max-width: 420px; min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; position: relative; }
+
+  /* 헤더 */
+  .hdr {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; background: var(--navy); color: #fff;
+    position: sticky; top: 0; z-index: 20;
+  }
+  .hdr .back { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 34px; height: 34px; border-radius: 10px; font-size: 18px; cursor: pointer; }
+  .hdr h1 { font-size: 17px; font-weight: 800; flex: 1; }
+  .hdr .meta { font-size: 13px; color: #c5cde0; font-weight: 700; }
+
+  .body { flex: 1; padding: 16px; animation: fade 0.25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+  /* 홈 */
+  .home-hero { text-align: center; padding: 28px 10px 18px; }
+  .home-hero .logo { font-size: 50px; }
+  .home-hero h2 { font-size: 23px; font-weight: 900; color: var(--navy); margin-top: 6px; }
+  .home-hero p { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+  .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 8px; }
+  .home-btn {
+    border: none; border-radius: 20px; padding: 26px 14px; cursor: pointer;
+    color: #fff; text-align: left; box-shadow: 0 6px 16px rgba(31,42,68,0.12);
+    transition: transform 0.12s;
+  }
+  .home-btn:active { transform: scale(0.97); }
+  .home-btn .ic { font-size: 30px; }
+  .home-btn .nm { font-size: 16px; font-weight: 800; margin-top: 10px; }
+  .home-btn .ds { font-size: 11.5px; opacity: 0.85; margin-top: 3px; }
+
+  /* 공통 버튼 */
+  .btn { border: none; border-radius: 14px; padding: 15px; font-size: 16px; font-weight: 800; font-family: inherit; cursor: pointer; width: 100%; transition: transform 0.1s, opacity 0.2s; }
+  .btn:active { transform: translateY(2px); }
+  .btn.primary { background: var(--navy); color: #fff; }
+  .btn.blue { background: var(--blue); color: #fff; }
+  .btn.green { background: var(--green); color: #fff; }
+  .btn.ghost { background: #fff; color: var(--navy); border: 2px solid var(--line); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* 리스트(챕터/파일) */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .list-item {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+  }
+  .list-item:active { transform: scale(0.98); }
+  .list-item .li-ic { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .list-item .li-tt { font-size: 15px; font-weight: 800; }
+  .list-item .li-sb { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .list-item .li-ar { margin-left: auto; color: var(--muted); font-size: 18px; }
+  .group-title { font-size: 13px; font-weight: 800; color: var(--muted); margin: 16px 4px 8px; }
+  .group-title:first-child { margin-top: 0; }
+
+  /* 진행바 */
+  .prog { height: 8px; background: var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+  .prog > div { height: 100%; background: var(--blue); border-radius: 6px; transition: width 0.3s; }
+  .prog-label { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 800; color: var(--muted); margin-bottom: 8px; }
+
+  /* 플래시카드 */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+    padding: 30px 20px; text-align: center; box-shadow: 0 8px 22px rgba(31,42,68,0.06);
+    margin-bottom: 16px;
+  }
+  .card .word { font-size: 34px; font-weight: 900; color: var(--navy); letter-spacing: -0.5px; }
+  .card .ex { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.5; font-style: italic; }
+  .qbox { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 18px; margin-bottom: 14px; }
+  .qbox .qtag { display: inline-block; font-size: 11px; font-weight: 800; color: var(--blue); background: #eaf1ff; padding: 3px 10px; border-radius: 999px; margin-bottom: 10px; }
+  .qbox .qtext { font-size: 16px; font-weight: 700; line-height: 1.5; }
+
+  .opts { display: flex; flex-direction: column; gap: 10px; }
+  .opt {
+    background: var(--card); border: 2px solid var(--line); border-radius: 13px;
+    padding: 14px 16px; font-size: 15px; font-weight: 700; font-family: inherit; text-align: left;
+    cursor: pointer; color: var(--txt); display: flex; align-items: center; gap: 10px; transition: transform 0.08s, border-color 0.15s, background 0.15s;
+  }
+  .opt:active { transform: scale(0.99); }
+  .opt .ob { width: 24px; height: 24px; border-radius: 7px; background: #eef1f6; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; color: var(--muted); }
+  .opt.correct { border-color: var(--green); background: #e7f8f0; }
+  .opt.correct .ob { background: var(--green); color: #fff; }
+  .opt.wrong { border-color: var(--red); background: #fdecef; }
+  .opt.wrong .ob { background: var(--red); color: #fff; }
+  .opt:disabled { cursor: default; }
+
+  .explain { margin-top: 14px; background: #f6f8fc; border: 1px solid var(--line); border-left: 4px solid var(--blue); border-radius: 10px; padding: 13px 14px; font-size: 13.5px; line-height: 1.55; }
+  .explain.ok { border-left-color: var(--green); }
+  .explain.no { border-left-color: var(--red); }
+  .explain b { font-weight: 800; }
+
+  .feed-icon { text-align: center; font-size: 30px; margin: 6px 0 0; height: 36px; }
+
+  /* 결과 */
+  .result { text-align: center; padding: 30px 16px; }
+  .result .em { font-size: 60px; }
+  .result h2 { font-size: 22px; font-weight: 900; color: var(--navy); margin: 10px 0; }
+  .result .score-row { display: flex; gap: 12px; margin: 20px 0; }
+  .result .sc { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 8px; }
+  .result .sc .n { font-size: 28px; font-weight: 900; }
+  .result .sc .l { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 2px; }
+
+  /* 오디오 플레이어 */
+  .player { background: var(--navy); border-radius: 18px; padding: 20px 18px; color: #fff; margin-bottom: 16px; }
+  .player .ptitle { font-size: 15px; font-weight: 800; text-align: center; }
+  .player .psub { font-size: 12px; color: #b9c3da; text-align: center; margin-top: 2px; margin-bottom: 16px; }
+  .player .seek { width: 100%; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 6px; background: rgba(255,255,255,0.25); outline: none; cursor: pointer; }
+  .player .seek::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; cursor: pointer; }
+  .player .seek::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: none; cursor: pointer; }
+  .player .times { display: flex; justify-content: space-between; font-size: 11.5px; color: #b9c3da; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .player .ctrls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 14px; }
+  .player .pbtn { background: rgba(255,255,255,0.15); border: none; color: #fff; border-radius: 12px; padding: 9px 14px; font-size: 13px; font-weight: 800; cursor: pointer; }
+  .player .play { width: 58px; height: 58px; border-radius: 50%; background: var(--blue); font-size: 24px; display: flex; align-items: center; justify-content: center; }
+  .round-pills { display: flex; gap: 8px; margin-bottom: 14px; }
+  .round-pill { flex: 1; text-align: center; font-size: 12px; font-weight: 800; padding: 8px; border-radius: 10px; background: var(--line); color: var(--muted); }
+  .round-pill.active { background: var(--navy); color: #fff; }
+  .round-pill.done { background: #d6f0e4; color: var(--green); }
+
+  /* 오답노트 */
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; background: #e7ebf2; padding: 5px; border-radius: 13px; }
+  .tab { flex: 1; text-align: center; padding: 10px; font-size: 13.5px; font-weight: 800; border-radius: 9px; cursor: pointer; color: var(--muted); border: none; background: none; font-family: inherit; }
+  .tab.active { background: #fff; color: var(--navy); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  .wcard { background: var(--card); border: 1px solid var(--line); border-radius: 13px; padding: 14px; margin-bottom: 10px; position: relative; }
+  .wcard .wtop { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .wcard .wword { font-size: 17px; font-weight: 900; color: var(--navy); }
+  .wcard .wmean { font-size: 14px; font-weight: 700; margin-top: 2px; }
+  .wcard .wex { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+  .wcard .wq { font-size: 14px; font-weight: 700; line-height: 1.45; }
+  .wcard .wline { font-size: 12.5px; margin-top: 5px; }
+  .wcard .wline .lab { color: var(--muted); font-weight: 700; }
+  .wcard .badge { background: #fdecef; color: var(--red); font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .wcard .del { position: absolute; bottom: 12px; right: 12px; background: none; border: none; color: var(--muted); font-size: 12px; font-weight: 800; cursor: pointer; text-decoration: underline; }
+  .wcard .chip { display: inline-block; font-size: 11px; font-weight: 800; color: var(--blue); background: #eaf1ff; padding: 2px 8px; border-radius: 6px; margin-bottom: 6px; }
+
+  .empty { text-align: center; color: var(--muted); padding: 50px 20px; font-size: 14px; }
+  .empty .e { font-size: 40px; margin-bottom: 10px; }
+  .spinner { text-align: center; padding: 40px; color: var(--muted); font-weight: 700; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .toolbar .btn { padding: 10px; font-size: 13px; }
+
+  /* 토스트 */
+  .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 100; max-width: 360px; text-align: center; animation: toastIn 0.25s ease; }
+  .toast.err { background: var(--red); }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+  .nav-btn-row { margin-top: 16px; }
+  .mt8 { margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+
+// ===================== Supabase =====================
+const SUPABASE_URL = "https://qktmejhctjpyiddivnec.supabase.co";
+const SUPABASE_KEY = "sb_publishable_UGOrtbydzHt8Y27SYH7ffg_F7o3UMe-";
+let sbClient = null;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+} catch (e) {
+  console.error("Supabase init failed:", e);
+}
+
+const AppCtx = createContext({ notify: () => {} });
+
+// ===================== 데이터: 단어 =====================
+const WORDS = [
+  { word: "specify", meaning: "구체적으로 명시하다", example: "specify the current address on the form" },
+  { word: "commend", meaning: "칭찬하다, 추천하다", example: "commend him on the store's successful operations" },
+  { word: "mandate", meaning: "지시하다, 권한을 주다 / n. 권한, 지시, 명령", example: "mandate a decrease in labor costs" },
+  { word: "extend", meaning: "연장하다, 늘이다", example: "extend the promotional offer until next week" },
+  { word: "discourage", meaning: "단념시키다", example: "discourage residents from parking illegally" },
+  { word: "exceed", meaning: "초과하다", example: "exceed the carry-on baggage allowance limit" },
+  { word: "discontinue", meaning: "중지하다", example: "discontinue sales of cosmetics line" },
+  { word: "postpone", meaning: "연기하다", example: "postpone the departure of the train to 3 o'clock" },
+  { word: "address", meaning: "제기하다 / 다루다 / 연설하다 / 보내다", example: "address complaints about customer service" },
+  { word: "attend", meaning: "참석하다", example: "ask Mr. Wallis to attend the interview" },
+  { word: "arrange", meaning: "정하다, 준비하다", example: "arrange an interview schedule with the applicants" },
+  { word: "permit", meaning: "허용하다", example: "permit entrance to the facility" },
+  { word: "consult", meaning: "상담하다", example: "consult a lawyer about the lease" },
+  { word: "require", meaning: "요구하다", example: "require attendees to complete a survey" },
+  { word: "reserve", meaning: "예약하다", example: "reserve a table for the luncheon" },
+  { word: "institute", meaning: "제정하다", example: "institute an efficient attendance system" },
+  { word: "grant", meaning: "수여하다", example: "grant employees paid holidays on a regular basis" },
+  { word: "announce", meaning: "발표하다", example: "announce an upcoming event" },
+  { word: "answer", meaning: "대답하다", example: "answer questions after the speech" },
+  { word: "respond", meaning: "응답하다", example: "respond to the cheers of the crowd by waving" },
+  { word: "evaluate", meaning: "평가하다", example: "evaluate Mr. Brown's performance as a manager" },
+  { word: "deliver", meaning: "전하다, 배달하다", example: "deliver an invitation in person" },
+  { word: "restore", meaning: "복구하다", example: "restore the national monuments in Paris" },
+  { word: "expire", meaning: "만기가 되다", example: "notice the permits expire on September 27" },
+  { word: "implement", meaning: "실행하다", example: "implement a museum construction plan" },
+  { word: "attract", meaning: "끌다, 유치하다", example: "attract a younger demographic to the tourist site" },
+  { word: "clarify", meaning: "명확하게 하다", example: "clarify details of the new return policy" },
+  { word: "depart", meaning: "출발하다", example: "scheduled to depart at 5:30 P.M." },
+  { word: "notify", meaning: "통보하다", example: "notify the CEO of Mr. Cabrea's arrival" },
+  { word: "last", meaning: "지속하다", example: "last longer than the team expected" },
+  { word: "accelerate", meaning: "촉진하다, 가속하다", example: "accelerate plans for launching a business" },
+  { word: "remind", meaning: "상기시키다", example: "remind members to arrive at the hotel by 2 P.M." },
+  { word: "enhance", meaning: "강화하다", example: "enhance the quality control system" },
+  { word: "operate", meaning: "조종하다, 운영하다", example: "operate equipment in a safe manner" },
+  { word: "intend", meaning: "~할 작정이다", example: "intend to work with H&D Incorporated" },
+  { word: "obtain", meaning: "얻다, 획득하다", example: "obtain a receipt for the payment" },
+  { word: "renew", meaning: "갱신하다", example: "renew the contract for next year" },
+  { word: "install", meaning: "설치하다", example: "install light fixtures in the building" },
+  { word: "enroll", meaning: "등록하다", example: "enroll in a leadership workshop" },
+  { word: "apply", meaning: "지원하다", example: "apply to Naoles Incorporated online" },
+  { word: "unveil", meaning: "발표하다, 드러내다", example: "unveil the company's expansion plan into Asia" },
+  { word: "acknowledge", meaning: "알리다 / 인정하다 / 감사를 표하다", example: "acknowledge that the proposal has been approved" },
+  { word: "recruit", meaning: "모집하다", example: "recruit extra staff over the next two weeks" },
+  { word: "escort", meaning: "수행하다, 호위하다", example: "escort the president to an important event" },
+  { word: "consider", meaning: "생각하다, 간주하다", example: "consider each guest as part of the family" },
+  { word: "demonstrate", meaning: "시연하다, 설명하다", example: "demonstrate the new factory equipment" },
+  { word: "load", meaning: "싣다", example: "load a shipment onto the truck" },
+  { word: "face", meaning: "직면하다", example: "face competition in the marketplace" },
+  { word: "deliberate", meaning: "심사숙고하다", example: "deliberate before announcing the winner" },
+  { word: "witness", meaning: "목격하다", example: "witness the effects of the flyer through a rise in sales" },
+  { word: "prevent", meaning: "방지하다, 막다", example: "prevent any possible errors" },
+  { word: "approve", meaning: "승인하다", example: "approve the organization's restructuring plan" },
+  { word: "remove", meaning: "치우다", example: "remove the old heating equipment" },
+  { word: "suspend", meaning: "중지하다, 연기하다", example: "suspend flights during severe weather" },
+  { word: "review", meaning: "재검토하다", example: "review the proposal for the next project" },
+  { word: "protect", meaning: "보호하다", example: "protect the interests of the company's shareholders" },
+  { word: "settle", meaning: "해결하다", example: "settle a claim for compensation" },
+  { word: "attempt", meaning: "시도하다", example: "attempt to expand a market share" },
+  { word: "guarantee", meaning: "보증하다", example: "guarantee free shipping" },
+  { word: "report", meaning: "보고하다, 보도하다", example: "report a decrease in revenue" },
+  { word: "prolong", meaning: "연장하다, 늘이다", example: "prolong the duration of the ceremony" },
+  { word: "determine", meaning: "결정하다", example: "determine the best location to build a factory" },
+  { word: "hesitate", meaning: "주저하다", example: "hesitate to contact Michael Lucas" },
+  { word: "submit", meaning: "제출하다", example: "submit the résumé to human resources" },
+  { word: "replace", meaning: "교환하다", example: "replace the damaged ink cartridge" },
+  { word: "propose", meaning: "제안하다", example: "propose changes to the budget report" },
+  { word: "retain", meaning: "계속 유지하다", example: "retain the current system" },
+  { word: "persist", meaning: "고집하다, 우기다", example: "persist in seeking a replacement" },
+  { word: "support", meaning: "지원하다, 응원하다", example: "support the foundation's activities by sending donations" },
+  { word: "instruct", meaning: "교육하다", example: "instruct employees on how to make a speech" },
+  { word: "undergo", meaning: "받다, 겪다", example: "undergo a safety inspection" },
+  { word: "handle", meaning: "처리하다, 다루다", example: "handle customer complaints quickly" },
+  { word: "contain", meaning: "담고 있다, 포함하다", example: "contain important data" },
+  { word: "contract", meaning: "계약하다", example: "contract Mosin Incorporated to install a security system" },
+  { word: "regret", meaning: "유감이다", example: "regret to inform you of a mistake in the report" },
+  { word: "benefit", meaning: "이익이 되다", example: "benefit the local charity organizations" },
+  { word: "enable", meaning: "할 수 있게 하다", example: "enable the marketing team to change the plan" },
+  { word: "confirm", meaning: "확인하다", example: "confirm the hotel reservation for Ms. Liang" },
+  { word: "evolve", meaning: "서서히 발전하다", example: "evolve beyond the port's traditional role" },
+  { word: "present", meaning: "보여주다, 제시하다", example: "present a boarding pass to the flight attendant" },
+  { word: "combine", meaning: "합치다", example: "combine the marketing and advertising departments" },
+  { word: "seek", meaning: "찾다", example: "seek creative and experienced applicants" },
+  { word: "assign", meaning: "할당하다", example: "assign the work to experienced staff" },
+  { word: "represent", meaning: "대표하다", example: "represent the sales department at the conference" },
+  { word: "forward", meaning: "전송하다", example: "forward the invitation to all staff members" },
+  { word: "proceed", meaning: "나아가다, 진행되다", example: "proceed to the next stage of the course" },
+  { word: "evaluation", meaning: "평가", example: "submit a weekly evaluation of the new employees" },
+  { word: "affiliation", meaning: "제휴, 합동", example: "have an affiliation with a worldwide network of hospitals" },
+  { word: "initiative", meaning: "계획, 발안, 결단력", example: "start an initiative to promote recycling" },
+  { word: "proximity", meaning: "가까움, 근접", example: "live in proximity to his place of work" },
+  { word: "departure", meaning: "출발, 벗어남", example: "delay the flight's departure for Chicago due to bad weather" },
+  { word: "advantage", meaning: "장점", example: "publicize the advantages of the product" },
+  { word: "estimate", meaning: "견적서, 추산", example: "provide written estimates of time and cost" },
+  { word: "deposit", meaning: "예금, 보증금", example: "withdraw the deposit at any time" },
+  { word: "issue", meaning: "호, 발행물 / 쟁점", example: "publish the December issue of the journal" },
+  { word: "budget", meaning: "예산", example: "receive the budget for the construction project" },
+  { word: "charge", meaning: "요금 / 책임", example: "offer training programs at no additional charge" },
+  { word: "ease", meaning: "쉬움, 편함", example: "complete an assignment with ease" },
+  { word: "conflict", meaning: "상충, 충돌", example: "change the appointment due to a conflict in schedule" },
+  { word: "facility", meaning: "시설, 설비", example: "relocate to the new facilities" },
+  { word: "renovation", meaning: "보수 공사", example: "begin the renovation next month" },
+  { word: "investment", meaning: "투자", example: "recommend an investment to customers" },
+  { word: "opportunity", meaning: "기회", example: "have the opportunity to review the proposal" },
+  { word: "performance", meaning: "공연 / 성과, 실적", example: "prepare a performance for the retirement party" },
+  { word: "fee", meaning: "서비스에 대한 요금", example: "pay the admission fee" },
+  { word: "fare", meaning: "교통수단의 운임, 요금", example: "reduce the bus fare for students" },
+  { word: "fluctuation", meaning: "변동, 동요", example: "stabilize the fluctuation of stock prices" },
+  { word: "innovation", meaning: "혁신", example: "consider innovation to be important" },
+  { word: "reliability", meaning: "신뢰도", example: "enhance the reliability of products" },
+  { word: "policy", meaning: "정책", example: "improve the current safety policy" },
+  { word: "output", meaning: "생산량", example: "control output and efficiency at the same time" },
+  { word: "assistance", meaning: "도움, 지원", example: "need assistance installing the software" },
+  { word: "position", meaning: "직, 위치", example: "apply for the managerial position" },
+  { word: "rise", meaning: "증가", example: "lead to significant rise in sales" },
+  { word: "receipt", meaning: "영수증, 수취", example: "submit all the receipts to Ms. Brown" },
+  { word: "replacement", meaning: "후임, 교체품", example: "find a replacement by the end of August" },
+  { word: "session", meaning: "수업, 기간", example: "set a budget for the summer session" },
+  { word: "quality", meaning: "품질", example: "guarantee the quality of service" },
+  { word: "feasibility", meaning: "실현 가능성", example: "conduct a study on the feasibility of opening a bakeshop" },
+  { word: "transition", meaning: "변화", example: "undergo a process of transition" },
+  { word: "refund", meaning: "환불", example: "request a refund on a purchase made last week" },
+  { word: "priority", meaning: "우선권, 우선하는 일", example: "give priority to first-class passengers" },
+  { word: "challenge", meaning: "어려운 일, 도전", example: "prepare for the challenge of a new task" },
+  { word: "shortage", meaning: "부족", example: "deal with the shortage of technicians" },
+  { word: "disruption", meaning: "중단, 두절", example: "complain about the disruption of a power supply" },
+  { word: "venture", meaning: "벤처 기업, 모험적 사업", example: "expect the venture to succeed" },
+  { word: "phase", meaning: "단계", example: "approach the final phase of construction" },
+  { word: "offer", meaning: "제공 가격, 제안", example: "receive a special offer and discounts" },
+  { word: "distribution", meaning: "배급, 분배", example: "take charge of the distribution of the product" },
+  { word: "anniversary", meaning: "주년, 기념일", example: "celebrate the company's 10th anniversary" },
+  { word: "appointment", meaning: "약속, 예약, 임명", example: "wish to reschedule the appointment" },
+  { word: "deadline", meaning: "마감 시간, 최종 기한", example: "change the deadline for submitting the proposals" },
+  { word: "vendor", meaning: "판매인, 행상인", example: "ask the vendor to deliver the ordered products" },
+  { word: "persistence", meaning: "끈기, 고집", example: "earn a special promotion by showing persistence" },
+  { word: "indicator", meaning: "지표, 척도", example: "be an indicator of poor heart conditions" },
+  { word: "discretion", meaning: "재량, 결정권", example: "hire staff at the discretion of the manager" },
+  { word: "qualification", meaning: "자격", example: "have the right qualifications for the position" },
+  { word: "surplus", meaning: "흑자, 여분", example: "announce a trade surplus this fiscal year" },
+  { word: "warranty", meaning: "보증서, 보증 기간", example: "come with a 90-day warranty" },
+  { word: "boost", meaning: "증대, 상승", example: "result in a boost in profits" },
+  { word: "completion", meaning: "완료, 수료", example: "report the completion of the building construction" },
+  { word: "commitment", meaning: "헌신", example: "make a commitment to research in robotics" },
+  { word: "extension", meaning: "기간의 연장", example: "agree to an extension for submitting the proposal" },
+  { word: "itinerary", meaning: "여행 일정표", example: "enclose the itinerary for the tour of Japan" },
+  { word: "competition", meaning: "경쟁", example: "facilitate competition among the airline companies" },
+  { word: "connection", meaning: "접속, 연결", example: "offer a free Internet connection at the hotel" },
+  { word: "procedure", meaning: "절차", example: "simplify the reimbursement procedure" },
+  { word: "acquisition", meaning: "인수, 습득", example: "discuss the firm's newest acquisition" },
+  { word: "variation", meaning: "변화", example: "be informed of any variation in the work schedule" },
+  { word: "career", meaning: "경력, 직업", example: "build a career as a film director" },
+  { word: "division", meaning: "부서, 계열사", example: "report any changes to the payroll division" },
+  { word: "category", meaning: "부문, 범주", example: "include the cost in the office expense category" },
+  { word: "adequate", meaning: "충분한, 적당한", example: "provide adequate information to investors" },
+  { word: "doubtful", meaning: "확신이 없는, 의심스러운", example: "remain doubtful about the suggestion" },
+  { word: "substantial", meaning: "상당한, 많은", example: "attract a substantial number of customers" },
+  { word: "limited", meaning: "한정된", example: "open for a limited period" },
+  { word: "additional", meaning: "부가적인, 추가의", example: "construct additional research facilities" },
+  { word: "practical", meaning: "현실적인, 실용적인", example: "explain practical ways to reduce costs" },
+  { word: "informative", meaning: "유익한", example: "update the staff manual to be more informative" },
+  { word: "entertaining", meaning: "재미있는", example: "deliver an entertaining speech" },
+  { word: "affordable", meaning: "가격이 알맞은", example: "obtain affordable housing in New Zealand" },
+  { word: "temporary", meaning: "임시의, 일시적인", example: "work as a temporary assistant" },
+  { word: "previous", meaning: "이전의", example: "read a copy of the previous edition" },
+  { word: "beneficial", meaning: "유익한", example: "make some beneficial suggestions" },
+  { word: "outstanding", meaning: "우수한", example: "receive an award for outstanding work" },
+  { word: "initial", meaning: "초기의, 처음의", example: "present an overview of the initial results" },
+  { word: "reasonable", meaning: "합리적인", example: "provide quality furniture at reasonable prices" },
+  { word: "ambitious", meaning: "야심찬", example: "announce an ambitious sales plan" },
+  { word: "reliable", meaning: "믿을 수 있는", example: "be well-known for reliable products" },
+  { word: "valued", meaning: "소중한", example: "retain valued members of staff" },
+  { word: "frequent", meaning: "빈번한", example: "require frequent medical treatment" },
+  { word: "repetitive", meaning: "반복적인", example: "get bored of repetitive tasks" },
+  { word: "innovative", meaning: "혁신적인", example: "propose an innovative sales strategy" },
+  { word: "unavailable", meaning: "이용할 수 없는", example: "remove unavailable items from a catalog" },
+  { word: "exemplary", meaning: "훌륭한, 모범적인", example: "recognize her exemplary work on the project" },
+  { word: "secure", meaning: "안전한 / 얻어내다", example: "keep the confidential document in a secure place" },
+  { word: "dissatisfied", meaning: "불만스러운", example: "feel dissatisfied with the service" },
+  { word: "exclusive", meaning: "독점적인, 전용의", example: "claim exclusive rights to a logo" },
+  { word: "selective", meaning: "신중한", example: "make selective choices when buying stocks" },
+  { word: "ongoing", meaning: "진행 중인", example: "enhance writing skills through an ongoing workshop" },
+  { word: "outgoing", meaning: "발신의, 나가는", example: "keep all the outgoing messages for a while" },
+  { word: "complete", meaning: "완성된, 완료한", example: "present a complete report on the research" },
+  { word: "appropriate", meaning: "적절한, 적당한", example: "learn about the appropriate use of machinery" },
+  { word: "relevant", meaning: "관련된", example: "forward a brochure with the relevant details" },
+  { word: "spacious", meaning: "넓은", example: "provide a spacious place for the opening ceremony" },
+  { word: "notable", meaning: "유명한, 주목할 만한", example: "visit notable sites in the city" },
+  { word: "official", meaning: "공식적인", example: "extend the official business hours" },
+  { word: "pleasant", meaning: "유쾌한", example: "enjoy the pleasant atmosphere of the art gallery" },
+  { word: "following", meaning: "다음의", example: "expand a product range in the following year" },
+  { word: "upcoming", meaning: "다가오는", example: "participate in the upcoming project" },
+  { word: "reluctant", meaning: "꺼리는, 주저하는", example: "feel reluctant to make a decision" },
+  { word: "leading", meaning: "일류의, 이끄는", example: "work on the design of a leading magazine" },
+  { word: "definitive", meaning: "가장 신뢰할 만한, 결정적인", example: "regard Mr. Park as the definitive expert" },
+  { word: "exceptional", meaning: "뛰어난, 예외적인", example: "receive exceptional reviews from critics" },
+  { word: "successful", meaning: "성공적인", example: "expect to achieve a successful outcome" },
+  { word: "minor", meaning: "중요치 않은, 사소한", example: "notice a minor error in the figures" },
+  { word: "incidental", meaning: "부차적인, 중요하지 않은", example: "contain incidental information" },
+  { word: "versatile", meaning: "다용도의", example: "seek durable and versatile furniture" },
+  { word: "mandatory", meaning: "의무적인", example: "take part in a mandatory training session" },
+  { word: "considerable", meaning: "상당한", example: "build a structure at a considerable cost" },
+  { word: "routine", meaning: "일상적인", example: "adjust some details in a routine schedule" },
+  { word: "unpopular", meaning: "인기 없는", example: "prove unpopular with consumers" },
+  { word: "comprehensive", meaning: "포괄적인, 종합적인", example: "conduct a comprehensive study on the economy" },
+  { word: "unauthorized", meaning: "권한이 없는", example: "prohibit unauthorized visitors from entering offices" },
+  { word: "administrative", meaning: "경영상의, 관리상의", example: "apply for an administrative position" },
+  { word: "constant", meaning: "지속적인", example: "receive constant inquiries about orders" },
+  { word: "ineffective", meaning: "효과가 없는", example: "advise against ineffective medical treatments" },
+  { word: "obsolete", meaning: "구식의, 안 쓰이는", example: "upgrade the computers that are now obsolete" },
+  { word: "conclusive", meaning: "결정적인", example: "provide conclusive proof of global warming" },
+  { word: "primary", meaning: "주된, 첫째의", example: "use the message board as the primary form of communication" },
+  { word: "numerous", meaning: "수많은", example: "receive numerous complaints about the products" },
+  { word: "tentative", meaning: "임시적인", example: "notify staff of a tentative course list" },
+  { word: "continuous", meaning: "지속적인, 연속적인", example: "lead to a continuous decrease in sales" },
+  { word: "optimistic", meaning: "낙관적인", example: "take an optimistic view of the future" },
+  { word: "urgent", meaning: "긴급한", example: "deal with an urgent problem" },
+  { word: "productive", meaning: "생산적인", example: "take steps to make the meeting more productive" },
+  { word: "improper", meaning: "잘못된, 부적절한", example: "prevent the improper installation of a cooling system" },
+  { word: "unfavorable", meaning: "나쁜", example: "analyze the causes of an unfavorable economy" },
+  { word: "stringent", meaning: "엄격한, 긴박한", example: "order the stringent inspection of passengers' luggage" },
+  { word: "confidential", meaning: "기밀의", example: "prohibit Mr. Ichiro from disclosing confidential files" },
+  { word: "broad", meaning: "광범위한, 폭이 넓은", example: "have a broad knowledge of art history" },
+  { word: "personal", meaning: "개인의", example: "keep personal belongings in a locker" },
+  { word: "sincere", meaning: "진실의, 성실한", example: "maintain sincere cooperation with Ort Incorporated" },
+  { word: "apparent", meaning: "명백한, 분명한", example: "report the apparent success of recent advertisements" },
+  { word: "visible", meaning: "눈에 보이는, 명확한", example: "make the warning lights more visible" },
+  { word: "traditional", meaning: "전통적인", example: "employ traditional production methods" },
+  { word: "sensitive", meaning: "신중을 요하는, 민감한", example: "store any sensitive documents in a safe place" },
+  { word: "skillfully", meaning: "능숙하게, 솜씨 있게", example: "operate the new equipment skillfully" },
+  { word: "approximately", meaning: "대략", example: "take approximately one hour to complete the survey" },
+  { word: "arguably", meaning: "거의 틀림없이", example: "be arguably the novelist's best work" },
+  { word: "exclusively", meaning: "오로지, 독점적으로", example: "provide a lounge exclusively for executives" },
+  { word: "unbearably", meaning: "견딜 수 없이", example: "forecast unbearably low temperatures" },
+  { word: "regularly", meaning: "정기적으로", example: "update the information regularly" },
+  { word: "properly", meaning: "정확히, 올바르게", example: "report working hours properly" },
+  { word: "definitely", meaning: "확실히", example: "definitely maintain the quality of all products" },
+  { word: "indirectly", meaning: "간접적으로", example: "indirectly influence consumer demand" },
+  { word: "easily", meaning: "쉽게", example: "operate the new equipment easily" },
+  { word: "accordingly", meaning: "상황에 따라서, 그에 맞춰서", example: "adapt accordingly to the economic recession" },
+  { word: "adversely", meaning: "불리하게", example: "adversely affect investment in Europe" },
+  { word: "immediately", meaning: "즉시", example: "leave the office immediately when the alarm sounds" },
+  { word: "carefully", meaning: "신중히, 조심스럽게", example: "carefully remove the contents from the container" },
+  { word: "actually", meaning: "실제로", example: "actually meet the workers in person" },
+  { word: "especially", meaning: "특히", example: "consider the seminar especially informative to artists" },
+  { word: "cautiously", meaning: "조심스럽게", example: "move the fragile items cautiously" },
+  { word: "solely", meaning: "오직", example: "travel to Rio de Janeiro solely for business" },
+  { word: "closely", meaning: "면밀히, 자세히", example: "closely inspect factory facilities" },
+  { word: "nearly", meaning: "거의", example: "visit nearly three branches a day" },
+  { word: "randomly", meaning: "무작위로", example: "be randomly assigned to a group" },
+  { word: "specifically", meaning: "특별히, 분명히", example: "specifically request a vegetarian meal" },
+  { word: "absolutely", meaning: "절대적으로", example: "insist that the renovation is absolutely necessary" },
+  { word: "gently", meaning: "천천히, 부드럽게", example: "gently remove the cake from the baking tin" },
+  { word: "promptly", meaning: "지체 없이, 정각에", example: "start the discussion promptly after noon" },
+  { word: "mutually", meaning: "상호 간에, 서로", example: "build a mutually beneficial relationship with clients" },
+  { word: "relatively", meaning: "상대적으로", example: "visit relatively inexpensive restaurants" },
+  { word: "previously", meaning: "이전에", example: "reconsider previously approved proposals" },
+  { word: "conveniently", meaning: "편리하게", example: "book a hotel conveniently situated downtown" },
+  { word: "primarily", meaning: "우선, 주로", example: "focus primarily on current problems" },
+  { word: "shortly", meaning: "곧", example: "resume the opening ceremony shortly" },
+  { word: "efficiently", meaning: "효율적으로", example: "deal with the client's complaints efficiently" },
+  { word: "occasionally", meaning: "가끔, 때때로", example: "stop by the bank occasionally" },
+  { word: "consistently", meaning: "지속적으로, 일관되게", example: "consistently exhibit leadership skills" },
+  { word: "separately", meaning: "따로, 개별적으로", example: "submit application documents separately" },
+  { word: "currently", meaning: "현재", example: "currently work in the marketing department" },
+  { word: "recently", meaning: "최근에", example: "recently detected many flaws in the project" },
+  { word: "briefly", meaning: "간단히", example: "briefly summarize the various sales strategies" },
+  { word: "dramatically", meaning: "극적으로", example: "increase survey response rates dramatically" },
+];
+
+// ===================== 데이터: RC =====================
+const RC_QUIZZES = [
+  { chapter: "최빈출 동사 어휘 1", question: "The new policies _____ all staff to wear masks.", options: ["organize", "mandate", "specify", "extend"], answer: "mandate", explanation: "mandate: 지시하다, 의무화하다" },
+  { chapter: "최빈출 동사 어휘 1", question: "We're _____ 15% discount thanks to appreciation.", options: ["postponing", "extending", "discontinuing", "discouraging"], answer: "extending", explanation: "extend: 연장하다, 늘이다 (=renew, lengthen)" },
+  { chapter: "최빈출 동사 어휘 1", question: "Please _____ to this email to let me know about your availability.", options: ["answer", "respond", "address", "attend"], answer: "respond", explanation: "respond + to: ~에 응답하다 (자동사)" },
+  { chapter: "최빈출 동사 어휘 1", question: "The seats are _____ for managements.", options: ["reserved", "permitted", "consulted", "required"], answer: "reserved", explanation: "reserve: 예약하다, 잡아두다" },
+  { chapter: "최빈출 동사 어휘 1", question: "I trust that you will _____ to this matter immediately.", options: ["attend to", "arrange", "commend", "grant"], answer: "attend to", explanation: "attend to: 주의를 기울이다, 처리하다" },
+  { chapter: "최빈출 동사 어휘 2", question: "help _____ the manufacturing process.", options: ["proceed", "accelerate", "describe", "restore"], answer: "accelerate", explanation: "accelerate: 촉진하다, 가속하다 (=expedite, speed up)" },
+  { chapter: "최빈출 동사 어휘 2", question: "The acquisition is a _____ from Machflier's typical business tactics.", options: ["departure", "delivery", "restoration", "implementation"], answer: "departure", explanation: "depart: 출발하다 / departure: 벗어남, 일탈" },
+  { chapter: "최빈출 동사 어휘 2", question: "NT's new fax machine is _____ of all the company's industrial products.", options: ["representation", "representative", "represent", "represented"], answer: "representative", explanation: "representative (형용사): 대표적인, 전형적인" },
+  { chapter: "최빈출 동사 어휘 2", question: "_____ a policy / regulations / a plan / a strategy.", options: ["conduct", "implement", "attend", "restore"], answer: "implement", explanation: "implement: 실행하다 (=carry out), 정책·계획과 함께 사용" },
+  { chapter: "최빈출 동사 어휘 2", question: "Please do not _____ to telephone me.", options: ["hesitate", "attempt", "persist", "retain"], answer: "hesitate", explanation: "hesitate + to V: 주저하다" },
+  { chapter: "최빈출 동사 어휘 3", question: "The science fair competition will _____ the projects of high school students.", options: ["feature", "recruit", "escort", "load"], answer: "feature", explanation: "feature: 특색으로 삼다, (특징으로) 선보이다" },
+  { chapter: "최빈출 동사 어휘 3", question: "They will _____ thorough investigation.", options: ["fulfill", "implement", "conduct", "recruit"], answer: "conduct", explanation: "conduct an investigation: 조사를 수행하다" },
+  { chapter: "최빈출 동사 어휘 3", question: "A record 2000 people _____ in the 5km Race this year.", options: ["participated", "attended", "witnessed", "demonstrated"], answer: "participated", explanation: "record (형용사): 기록적인 / participate in: 참가하다" },
+  { chapter: "최빈출 동사 어휘 3", question: "_____ a younger demographic to the tourist site.", options: ["Attract", "Unveil", "Acknowledge", "Face"], answer: "Attract", explanation: "attract: 끌다, 유치하다 (=draw)" },
+  { chapter: "최빈출 동사 어휘 3", question: "Please _____ in seeking a replacement.", options: ["persist", "consider", "demonstrate", "load"], answer: "persist", explanation: "persist in + ~ing: 고집하다, 우기다" },
+  { chapter: "최빈출 동사 어휘 4", question: "Delays at Incheon International Airport are becoming more _____.", options: ["frequent", "repetitive", "selective", "ongoing"], answer: "frequent", explanation: "frequent: 빈번한 (지연이 잦아짐)" },
+  { chapter: "최빈출 동사 어휘 4", question: "She doesn't _____ of me resigning from my job.", options: ["approve", "prevent", "suspend", "settle"], answer: "approve", explanation: "approve of ~: ~에 대해 찬성하다 (자동사)" },
+  { chapter: "최빈출 동사 어휘 4", question: "Please settle your _____ before leaving.", options: ["bill", "review", "claim", "dispute"], answer: "bill", explanation: "settle: 지불하다 / settle a bill: 계산하다" },
+  { chapter: "최빈출 동사 어휘 4", question: "_____ A from ~ing: 방지하다, 막다.", options: ["Prevent", "Remove", "Suspend", "Protect"], answer: "Prevent", explanation: "prevent A from ~ing = stop/keep/prohibit/forbid/ban A from ~ing" },
+  { chapter: "최빈출 동사 어휘 4", question: "n. suspension: 연기, 보류 → 동사형은?", options: ["suspend", "review", "protect", "settle"], answer: "suspend", explanation: "suspend: 중지하다, 연기하다 (=temporarily stop, cease, postpone)" },
+  { chapter: "최빈출 동사 어휘 5", question: "If you need _____ with research, (A) assistant (B) assistance", options: ["assistant", "assistance", "assist", "assisted"], answer: "assistance", explanation: "assistance: 도움, 지원 (불가산) / assistant: 조수 (가산)" },
+  { chapter: "최빈출 동사 어휘 5", question: "_____ a safety inspection / tests / intensive training.", options: ["undergo", "handle", "instruct", "contain"], answer: "undergo", explanation: "undergo: 받다, 겪다 (안 좋은 일, 변화)" },
+  { chapter: "최빈출 동사 어휘 5", question: "regret + to V vs regret + Ving: 차이는?", options: ["to V: 미래성, Ving: 과거성", "to V: 과거성, Ving: 미래성", "둘 다 같음", "to V만 사용"], answer: "to V: 미래성, Ving: 과거성", explanation: "regret to V: ~하려는 것이 유감 / regret Ving: ~한 것이 유감" },
+  { chapter: "최빈출 동사 어휘 5", question: "_____ employees on how to make a speech.", options: ["Instruct", "Support", "Handle", "Contain"], answer: "Instruct", explanation: "instruct: 교육하다" },
+  { chapter: "최빈출 동사 어휘 5", question: "benefit [자] from ~: ~로부터 득을 보다 / benefit [타]: ~에게 ___이 되다", options: ["이익", "손해", "지원", "방해"], answer: "이익", explanation: "benefit ~에게 이익이 되다 / benefit from ~에서 득을 보다" },
+  { chapter: "최빈출 명사 어휘 1", question: "The building has direct _____ to a small beach.", options: ["access", "approach", "initiative", "proximity"], answer: "access", explanation: "access to: ~에 접근, 입장 / approach to: ~에 접근 방법" },
+  { chapter: "최빈출 명사 어휘 1", question: "a research _____: 연구 보조금", options: ["grant", "deposit", "budget", "fee"], answer: "grant", explanation: "grant (명사): 보조금 / grant (동사): 수여하다, 승인하다" },
+  { chapter: "최빈출 명사 어휘 1", question: "within _____: 예산을 초과하지 않고", options: ["budget", "charge", "fee", "fare"], answer: "budget", explanation: "budget: 예산 / within budget: 예산 내에서" },
+  { chapter: "최빈출 명사 어휘 1", question: "pay the admission _____", options: ["fee", "fare", "charge", "cost"], answer: "fee", explanation: "fee: 서비스에 대한 요금 / fare: 교통 요금" },
+  { chapter: "최빈출 명사 어휘 1", question: "reduce the bus _____ for students", options: ["fare", "fee", "charge", "cost"], answer: "fare", explanation: "fare: 교통수단의 운임, 요금" },
+  { chapter: "최빈출 명사 어휘 2", question: "If you need _____ with research: (A) assistant (B) assistance", options: ["assistance", "assistant", "assist", "assisting"], answer: "assistance", explanation: "assistance (불가산): 도움 / assistant (가산): 조수" },
+  { chapter: "최빈출 명사 어휘 2", question: "lead to significant _____ in sales", options: ["rise", "raise", "arise", "arouse"], answer: "rise", explanation: "rise (명사): 증가 / raise (동사): 올리다, 인상하다" },
+  { chapter: "최빈출 명사 어휘 2", question: "in _____ of ~: ~의 부재 시에", options: ["absence", "session", "transition", "priority"], answer: "absence", explanation: "in one's absence = during one's absence" },
+  { chapter: "최빈출 명사 어휘 2", question: "This restaurant had a delicious _____ of Korean cuisine.", options: ["variety", "variation", "various", "vary"], answer: "variety", explanation: "variety: 다양성 / variation: 변화" },
+  { chapter: "최빈출 명사 어휘 2", question: "top _____ 최우선권", options: ["priority", "quality", "feasibility", "session"], answer: "priority", explanation: "priority: 우선권 / top priority: 최우선 사항" },
+  { chapter: "최빈출 명사 어휘 3", question: "the first _____ of the project: (A) phase (B) trace", options: ["phase", "trace", "offer", "venture"], answer: "phase", explanation: "phase: 단계 (=stage)" },
+  { chapter: "최빈출 명사 어휘 3", question: "make (schedule) an _____: 업무 관련 약속을 잡다", options: ["appointment", "anniversary", "deadline", "vendor"], answer: "appointment", explanation: "appointment: 약속, 예약, 임명" },
+  { chapter: "최빈출 명사 어휘 3", question: "seek _____: (A) employment (B) employee", options: ["employment", "employee", "employer", "employ"], answer: "employment", explanation: "employment: 고용 / employee: 직원" },
+  { chapter: "최빈출 명사 어휘 3", question: "change the _____ for submitting the proposals", options: ["deadline", "disruption", "distribution", "venture"], answer: "deadline", explanation: "deadline: 마감 시간 (=last day to submit, due date)" },
+  { chapter: "최빈출 명사 어휘 3", question: "in _____ of ~을 축하하여", options: ["celebration", "observance", "honor", "reply"], answer: "celebration", explanation: "in celebration of = in commemoration of" },
+  { chapter: "최빈출 명사 어휘 4", question: "earn a special promotion by showing _____", options: ["persistence", "discretion", "qualification", "completion"], answer: "persistence", explanation: "persistence: 끈기, 고집" },
+  { chapter: "최빈출 명사 어휘 4", question: "at the _____ of ~의 재량대로", options: ["discretion", "commitment", "extension", "acquisition"], answer: "discretion", explanation: "discretion: 재량 / at the discretion of: ~의 재량대로" },
+  { chapter: "최빈출 명사 어휘 4", question: "come with a 90-day _____", options: ["warranty", "surplus", "boost", "completion"], answer: "warranty", explanation: "warranty: 보증서, 보증 기간 (=guarantee)" },
+  { chapter: "최빈출 명사 어휘 4", question: "result in a _____ in profits", options: ["boost", "surplus", "persistence", "indicator"], answer: "boost", explanation: "boost: 증대, 상승" },
+  { chapter: "최빈출 명사 어휘 4", question: "discuss the firm's newest _____", options: ["acquisition", "itinerary", "extension", "procedure"], answer: "acquisition", explanation: "acquisition: 인수, 습득" },
+  { chapter: "최빈출 형용사 어휘 1", question: "_____ back issues of the popular magazine will be offered. (A) Limited (B) Limiting", options: ["Limited", "Limiting", "Limit", "Limitation"], answer: "Limited", explanation: "limited: 한정된 / limiting: 제한하는" },
+  { chapter: "최빈출 형용사 어휘 1", question: "If you take this class, you can be _____ in using the computer.", options: ["proficient", "practical", "productive", "prominent"], answer: "proficient", explanation: "practical: 현실적인 / proficient: 능숙한" },
+  { chapter: "최빈출 형용사 어휘 1", question: "He found the revised guide to be very ________. (A) beneficial (B) beneficiary (C) benefactor", options: ["beneficial", "beneficiary", "benefactor", "benefit"], answer: "beneficial", explanation: "beneficial: 유익한 / beneficiary: 수혜자" },
+  { chapter: "최빈출 형용사 어휘 1", question: "_____ staff: 임시 직원", options: ["temporary", "tentative", "initial", "previous"], answer: "temporary", explanation: "temporary: 임시의 (=tentative 잠정적인)" },
+  { chapter: "최빈출 형용사 어휘 1", question: "retain _____ members of staff", options: ["valued", "outstanding", "reliable", "ambitious"], answer: "valued", explanation: "valued: 소중한 / valued customers: 소중한 고객" },
+  { chapter: "최빈출 형용사 어휘 2", question: "The customer was (satisfied/satisfactory) with the product.", options: ["satisfied", "satisfactory", "satisfying", "satisfaction"], answer: "satisfied", explanation: "satisfied (사람주어): 만족한 / satisfactory (사물주어): 만족스러운" },
+  { chapter: "최빈출 형용사 어휘 2", question: "The exhibit will be open, _____ July 4.", options: ["excluding", "following", "during", "including"], answer: "excluding", explanation: "excluding: ~를 제외하고 (=except for)" },
+  { chapter: "최빈출 형용사 어휘 2", question: "keep the confidential document in a _____ place", options: ["secure", "selective", "ongoing", "complete"], answer: "secure", explanation: "secure: 안전한 / v. secure: 얻어내다, 확보하다" },
+  { chapter: "최빈출 형용사 어휘 2", question: "We can save money by being _____ in the purchase.", options: ["selective", "exclusive", "innovative", "dissatisfied"], answer: "selective", explanation: "selective: 신중한" },
+  { chapter: "최빈출 형용사 어휘 2", question: "available _____ sale / rent", options: ["for", "to", "in", "at"], answer: "for", explanation: "available for sale/rent: 판매/임대 가능한" },
+  { chapter: "최빈출 형용사 어휘 3", question: "for the third _____ year", options: ["successive", "successful", "leading", "definitive"], answer: "successive", explanation: "successive: 연속의 / successful: 성공적인" },
+  { chapter: "최빈출 형용사 어휘 3", question: "It is essential that S + (should) _____", options: ["V (동사원형)", "to V", "Ving", "V-ed"], answer: "V (동사원형)", explanation: "주절에 제안·요청·의무 표현 시 종속절은 (should) + 동사원형" },
+  { chapter: "최빈출 형용사 어휘 3", question: "require work experience in a _____ field", options: ["related", "relevant", "routine", "reluctant"], answer: "related", explanation: "related to = relevant to: ~와 관련된" },
+  { chapter: "최빈출 형용사 어휘 3", question: "Mr. Hayes put _____ effort into that.", options: ["considerable", "considerate", "comparing", "comparative"], answer: "considerable", explanation: "considerable: 상당한 / considerate: 사려 깊은" },
+  { chapter: "최빈출 형용사 어휘 3", question: "regard Mr. Park as the _____ expert in stock market", options: ["definitive", "definite", "leading", "exceptional"], answer: "definitive", explanation: "definitive: 가장 신뢰할 만한, 결정적인" },
+  { chapter: "최빈출 형용사 어휘 4", question: "follow _____ work standards", options: ["stringent", "reserved", "obsolete", "tentative"], answer: "stringent", explanation: "stringent: 엄격한 (=strict, rigorous, rigid)" },
+  { chapter: "최빈출 형용사 어휘 4", question: "The new laws become effective _____ 1 March", options: ["as of", "as for", "as to", "as with"], answer: "as of", explanation: "as of + 날짜: ~부터 효력 발생" },
+  { chapter: "최빈출 형용사 어휘 4", question: "This position requires a _____ familiarity with the instrument.", options: ["broad", "high", "large", "deep"], answer: "broad", explanation: "broad: 광범위한 (=extensive, comprehensive)" },
+  { chapter: "최빈출 형용사 어휘 4", question: "take steps / measures / _____ : 조치를 취하다", options: ["action", "procedure", "routine", "primary"], answer: "action", explanation: "take steps/measures/action: 조치를 취하다" },
+  { chapter: "최빈출 형용사 어휘 4", question: "take an _____ view of the future", options: ["optimistic", "pessimistic", "urgent", "productive"], answer: "optimistic", explanation: "optimistic: 낙관적인 ↔ pessimistic: 비관적인" },
+  { chapter: "최빈출 부사 어휘 1", question: "Mr. Kay is _____ the most recognized author.", options: ["arguably", "argued", "argument", "argue"], answer: "arguably", explanation: "arguably: 거의 틀림없이 (보통 최상급 앞에 쓰임)" },
+  { chapter: "최빈출 부사 어휘 1", question: "provide a lounge _____ for executives", options: ["exclusively", "particularly", "solely", "especially"], answer: "exclusively", explanation: "exclusively: 오로지, 독점적으로" },
+  { chapter: "최빈출 부사 어휘 1", question: "update the information _____: 정기적으로", options: ["regularly", "routinely", "periodically", "모두 가능"], answer: "모두 가능", explanation: "regularly = periodically = routinely = on a regular basis" },
+  { chapter: "최빈출 부사 어휘 1", question: "_____ designed/made/developed: 특별히", options: ["specifically", "absolutely", "primarily", "solely"], answer: "specifically", explanation: "specifically (specially) designed: 특별히 설계된" },
+  { chapter: "최빈출 부사 어휘 1", question: "work _____ with~: ~와 긴밀히 협력하다", options: ["closely", "nearly", "briefly", "shortly"], answer: "closely", explanation: "closely: 면밀히 / work closely with: ~와 긴밀히 협력하다" },
+  { chapter: "최빈출 부사 어휘 2", question: "Please revise next month's schedule _____.", options: ["accordingly", "consecutively", "relatively", "primarily"], answer: "accordingly", explanation: "accordingly: 상황에 따라서 (=thus, consequently)" },
+  { chapter: "최빈출 부사 어휘 2", question: "be _____ affected by ~: 불리하게 영향을 받다", options: ["adversely", "dramatically", "briefly", "previously"], answer: "adversely", explanation: "adversely: 불리하게" },
+  { chapter: "최빈출 부사 어휘 2", question: "focus _____ on current problems", options: ["primarily", "promptly", "previously", "shortly"], answer: "primarily", explanation: "primarily: 우선, 주로 (=mainly, chiefly)" },
+  { chapter: "최빈출 부사 어휘 2", question: "book a hotel _____ situated downtown", options: ["conveniently", "efficiently", "consistently", "separately"], answer: "conveniently", explanation: "conveniently: 편리하게 / conveniently located" },
+  { chapter: "최빈출 부사 어휘 2", question: "answer the surveys _____: 신속하게", options: ["promptly", "shortly", "briefly", "currently"], answer: "promptly", explanation: "promptly: 지체 없이 (=punctually)" },
+  { chapter: "최빈출 전치사 관련 어구", question: "Tickets may be booked _____ online: 사전에, 미리", options: ["in advance", "at first", "as of", "on schedule"], answer: "in advance", explanation: "in advance: 사전에, 미리 (=ahead of time)" },
+  { chapter: "최빈출 전치사 관련 어구", question: "Helmets must be worn _____ safety regulations.", options: ["in compliance with", "in accordance with", "in response to", "모두 가능"], answer: "모두 가능", explanation: "in compliance with = in accordance with: ~에 따라" },
+  { chapter: "최빈출 전치사 관련 어구", question: "Passengers should claim their baggage _____ arrival.", options: ["on/upon 모두", "at", "in", "by"], answer: "on/upon 모두", explanation: "on arrival = upon arrival = as soon as S+V: 도착하는 즉시" },
+  { chapter: "최빈출 전치사 관련 어구", question: "Ms. Ki will write the letter _____ Crystal Incorporated.", options: ["on behalf of", "at the request of", "in an effort to", "as a result of"], answer: "on behalf of", explanation: "on behalf of: ~을 대표하여" },
+  { chapter: "최빈출 전치사 관련 어구", question: "All train fares will increase _____ next month.", options: ["as of", "as for", "as to", "in accordance with"], answer: "as of", explanation: "as of: ~부터, ~로 (=starting, effective + 날짜)" },
+  { chapter: "최빈출 형용사 관련 어구", question: "be _____ for ~에 대한 책임이 있다", options: ["responsible", "responsive", "reliable", "reluctant"], answer: "responsible", explanation: "be responsible for: ~에 대한 책임이 있다" },
+  { chapter: "최빈출 형용사 관련 어구", question: "The manager has to be _____ to the consumer demand.", options: ["responsive", "responsible", "reliable", "relevant"], answer: "responsive", explanation: "be responsive to: 즉각 반응하는" },
+  { chapter: "최빈출 형용사 관련 어구", question: "Overseas orders are _____ to higher shipping rates.", options: ["subject", "eligible", "willing", "eager"], answer: "subject", explanation: "be subject to: ~의 영향을 받기 쉽다" },
+  { chapter: "최빈출 형용사 관련 어구", question: "The manager is _____ for a promotion.", options: ["eligible", "entitled", "subject", "willing"], answer: "eligible", explanation: "be eligible for: ~할 자격이 있다" },
+  { chapter: "최빈출 형용사 관련 어구", question: "George Payne's book is _____ to be released.", options: ["about", "going", "likely", "supposed"], answer: "about", explanation: "be about to: 막 ~하려고 하다" },
+  { chapter: "최빈출 동사 관련 어구", question: "Tom's Auto Repair Shop _____ in fixing motorcycles.", options: ["specializes", "concludes", "disposes", "relies"], answer: "specializes", explanation: "specialize in: ~을 전문적으로 하다" },
+  { chapter: "최빈출 동사 관련 어구", question: "The issue should be _____ promptly.", options: ["dealt with", "turned in", "set up", "relied on"], answer: "dealt with", explanation: "deal with: ~을 처리하다 / be dealt with: 처리되다" },
+  { chapter: "최빈출 동사 관련 어구", question: "Please _____ your evaluations by the end of today.", options: ["turn in", "set up", "dispose of", "proceed to"], answer: "turn in", explanation: "turn in: 제출하다 (=submit, file, hand in)" },
+  { chapter: "최빈출 동사 관련 어구", question: "Ms. Chambers _____ her assistant to run her office.", options: ["relies on", "specializes in", "concludes with", "disposes of"], answer: "relies on", explanation: "rely on/upon: ~에 의지하다 (=depend on, count on)" },
+  { chapter: "최빈출 동사 관련 어구", question: "The high cost of land _____ the increasing price of homes.", options: ["accounts for", "qualifies for", "waits for", "looks for"], answer: "accounts for", explanation: "account for: ~의 원인이 되다, ~의 비율을 차지하다" },
+  { chapter: "최빈출 명사 관련 어구", question: "Whitehorn Limited issued a _____ to introduce its new CEO.", options: ["press release", "sales figures", "work shift", "contingency plan"], answer: "press release", explanation: "press release: 보도자료 / press conference: 기자회견" },
+  { chapter: "최빈출 명사 관련 어구", question: "Customers have a _____ for shopping via online stores.", options: ["preference", "discussion", "contribution", "confidence"], answer: "preference", explanation: "preference for: ~에 대한 선호" },
+  { chapter: "최빈출 명사 관련 어구", question: "Tenants have an _____ to give one month's notice.", options: ["obligation", "invitation", "failure", "proportion"], answer: "obligation", explanation: "obligation to: ~할 의무" },
+  { chapter: "최빈출 명사 관련 어구", question: "The bakery offers _____ of cakes and pastries.", options: ["an assortment", "a series", "customer loyalty", "job description"], answer: "an assortment", explanation: "an assortment of: 여러 가지의 (=a variety of)" },
+  { chapter: "최빈출 명사 관련 어구", question: "Mr. Jay thanked everyone for their _____ to the charity.", options: ["contributions", "discussions", "preferences", "obligations"], answer: "contributions", explanation: "contribution to: ~에 기부, 공헌" },
+  { chapter: "최빈출 짝을 이루는 표현", question: "Many graduates are having difficulty _____ employment.", options: ["seeking", "looking for", "searching for", "모두 가능"], answer: "모두 가능", explanation: "seek employment = look for a job = search for work" },
+  { chapter: "최빈출 짝을 이루는 표현", question: "[정가] regular price = set price = fixed price = _____ price", options: ["standard/cover 모두", "only standard", "only cover", "list only"], answer: "standard/cover 모두", explanation: "standard price = cover price = list price = net price: 정가" },
+  { chapter: "최빈출 짝을 이루는 표현", question: "Interns usually work _____ senior employees.", options: ["모두 가능", "alongside only", "along with only", "together with only"], answer: "모두 가능", explanation: "alongside = along with = together with: ~와 함께" },
+  { chapter: "최빈출 짝을 이루는 표현", question: "The research team rose to _____ after developing a vaccine.", options: ["fame", "success only", "prominence only", "fame only"], answer: "fame", explanation: "rise to fame: 명성을 날리다" },
+  { chapter: "최빈출 짝을 이루는 표현", question: "Ms. Hearst is doing business _____ Thirst-Co Beverages at the moment.", options: ["with", "for", "in", "on"], answer: "with", explanation: "do business with: ~와 거래하다 / at the moment = now = at present" },
+];
+
+// ===================== 데이터: LC 파일 =====================
+const LC_FILES = [
+  { id: 1, part: "Part 1", fileName: "part1_01.mp3", title: "Part 1 - 01" },
+  { id: 2, part: "Part 1", fileName: "part1_02.mp3", title: "Part 1 - 02" },
+  { id: 3, part: "Part 1", fileName: "part1_03.mp3", title: "Part 1 - 03" },
+  { id: 4, part: "Part 1", fileName: "part1_04.mp3", title: "Part 1 - 04" },
+  { id: 5, part: "Part 2", fileName: "part2_01.mp3", title: "Part 2 - 01" },
+  { id: 6, part: "Part 2", fileName: "part2_02.mp3", title: "Part 2 - 02" },
+  { id: 7, part: "Part 2", fileName: "part2_03.mp3", title: "Part 2 - 03" },
+  { id: 8, part: "Part 2", fileName: "part2_04.mp3", title: "Part 2 - 04" },
+  { id: 9, part: "Part 2", fileName: "part2_05.mp3", title: "Part 2 - 05" },
+  { id: 10, part: "Part 2", fileName: "part2_06.mp3", title: "Part 2 - 06" },
+  { id: 11, part: "Part 2", fileName: "part2_07.mp3", title: "Part 2 - 07" },
+  { id: 12, part: "Part 2", fileName: "part2_08.mp3", title: "Part 2 - 08" },
+  { id: 13, part: "Part 2", fileName: "part2_09.mp3", title: "Part 2 - 09" },
+  { id: 14, part: "Part 2", fileName: "part2_10.mp3", title: "Part 2 - 10" },
+  { id: 15, part: "Part 2", fileName: "part2_11.mp3", title: "Part 2 - 11" },
+  { id: 16, part: "Part 2", fileName: "part2_12.mp3", title: "Part 2 - 12" },
+  { id: 17, part: "Part 3", fileName: "part3_01.mp3", title: "Part 3 - 01" },
+  { id: 18, part: "Part 3", fileName: "part3_02.mp3", title: "Part 3 - 02" },
+  { id: 19, part: "Part 3", fileName: "part3_03.mp3", title: "Part 3 - 03" },
+  { id: 20, part: "Part 3", fileName: "part3_04.mp3", title: "Part 3 - 04" },
+  { id: 21, part: "Part 3", fileName: "part3_05.mp3", title: "Part 3 - 05" },
+  { id: 22, part: "Part 3", fileName: "part3_06.mp3", title: "Part 3 - 06" },
+  { id: 23, part: "Part 3", fileName: "part3_07.mp3", title: "Part 3 - 07" },
+  { id: 24, part: "Part 3", fileName: "part3_08.mp3", title: "Part 3 - 08" },
+  { id: 25, part: "Part 3", fileName: "part3_09.mp3", title: "Part 3 - 09" },
+  { id: 26, part: "Part 3", fileName: "part3_10.mp3", title: "Part 3 - 10" },
+  { id: 27, part: "Part 3", fileName: "part3_11.mp3", title: "Part 3 - 11" },
+  { id: 28, part: "Part 3", fileName: "part3_12.mp3", title: "Part 3 - 12" },
+  { id: 29, part: "Part 3", fileName: "part3_13.mp3", title: "Part 3 - 13" },
+  { id: 30, part: "Part 3", fileName: "part3_14.mp3", title: "Part 3 - 14" },
+  { id: 31, part: "Part 4", fileName: "part4_01.mp3", title: "Part 4 - 01" },
+  { id: 32, part: "Part 4", fileName: "part4_02.mp3", title: "Part 4 - 02" },
+  { id: 33, part: "Part 4", fileName: "part4_03.mp3", title: "Part 4 - 03" },
+  { id: 34, part: "Part 4", fileName: "part4_04.mp3", title: "Part 4 - 04" },
+  { id: 35, part: "Part 4", fileName: "part4_05.mp3", title: "Part 4 - 05" },
+  { id: 36, part: "Part 4", fileName: "part4_06.mp3", title: "Part 4 - 06" },
+  { id: 37, part: "Part 4", fileName: "part4_07.mp3", title: "Part 4 - 07" },
+  { id: 38, part: "Part 4", fileName: "part4_08.mp3", title: "Part 4 - 08" },
+  { id: 39, part: "Part 4", fileName: "part4_09.mp3", title: "Part 4 - 09" },
+  { id: 40, part: "Part 4", fileName: "part4_10.mp3", title: "Part 4 - 10" },
+  { id: 41, part: "Part 4", fileName: "part4_11.mp3", title: "Part 4 - 11" },
+  { id: 42, part: "Part 4", fileName: "part4_12.mp3", title: "Part 4 - 12" },
+  { id: 43, part: "Part 4", fileName: "part4_13.mp3", title: "Part 4 - 13" },
+  { id: 44, part: "Part 4", fileName: "part4_14.mp3", title: "Part 4 - 14" },
+];
+
+// ===================== LC 문제 생성기 =====================
+// ⚠️ 실제 음원 내용에 맞는 문제는 아래 BANK를 수정/교체해서 쓰세요.
+//    (음원 스크립트를 알 수 없어 토익 유형에 맞춘 샘플 문제를 자동 배정합니다.)
+const P1_BANK = [
+  { question: "사진을 가장 잘 묘사한 것은?", options: ["A man is typing on a keyboard.", "A man is repairing a printer.", "A man is leaving the office.", "A man is opening a window."], answer: "A man is typing on a keyboard.", explanation: "현재진행형 동작 묘사를 정확히 듣는 것이 핵심입니다." },
+  { question: "사진 속 사람의 동작으로 알맞은 것은?", options: ["She is watering some plants.", "She is painting a wall.", "She is folding laundry.", "She is washing dishes."], answer: "She is watering some plants.", explanation: "사람의 동작(현재진행형)을 들으세요." },
+  { question: "사진을 가장 잘 묘사한 것은?", options: ["Some chairs are arranged in rows.", "Some boxes are being unloaded.", "A table is being set.", "A door is being closed."], answer: "Some chairs are arranged in rows.", explanation: "사물 상태 묘사(be + p.p.)에 주의하세요." },
+  { question: "사진 속 장면으로 알맞은 것은?", options: ["People are crossing a street.", "People are boarding a bus.", "People are climbing stairs.", "People are entering a building."], answer: "People are crossing a street.", explanation: "다수 인물의 공통 동작을 파악하세요." },
+  { question: "사진을 가장 잘 묘사한 것은?", options: ["Items are displayed on shelves.", "A shelf is being assembled.", "A customer is paying for goods.", "A cart is being pushed."], answer: "Items are displayed on shelves.", explanation: "사물 위치/상태 표현을 들으세요." },
+  { question: "사진 속 동작으로 알맞은 것은?", options: ["A worker is wearing a helmet.", "A worker is removing a ladder.", "A worker is digging a hole.", "A worker is carrying a pipe."], answer: "A worker is wearing a helmet.", explanation: "착용 상태(be wearing) 표현에 유의하세요." },
+  { question: "사진을 가장 잘 묘사한 것은?", options: ["Cars are parked along the road.", "A car is being washed.", "A road is being paved.", "Traffic lights are being installed."], answer: "Cars are parked along the road.", explanation: "주차된 상태(be parked)를 정확히 듣습니다." },
+  { question: "사진 속 장면으로 알맞은 것은?", options: ["A woman is holding a document.", "A woman is signing a contract.", "A woman is filing papers.", "A woman is reading a newspaper."], answer: "A woman is holding a document.", explanation: "손에 들고 있는 동작(holding)에 집중하세요." },
+];
+const P2_BANK = [
+  { question: "Where can I find the meeting room?", options: ["It's on the third floor.", "At three o'clock.", "Yes, I attended it.", "A new projector."], answer: "It's on the third floor.", explanation: "Where 의문문 → 장소로 답합니다." },
+  { question: "When will the shipment arrive?", options: ["By Friday afternoon.", "From the warehouse.", "Ten boxes.", "Yes, it did."], answer: "By Friday afternoon.", explanation: "When 의문문 → 시점으로 답합니다." },
+  { question: "Who is in charge of the project?", options: ["Ms. Lee is.", "In the main office.", "Next week.", "It was successful."], answer: "Ms. Lee is.", explanation: "Who 의문문 → 사람으로 답합니다." },
+  { question: "Why was the event canceled?", options: ["Because of the weather.", "At the convention center.", "About 200 people.", "Yes, please."], answer: "Because of the weather.", explanation: "Why 의문문 → 이유(Because)로 답합니다." },
+  { question: "Would you like coffee or tea?", options: ["Tea, please.", "Yes, I would.", "In the kitchen.", "It's too hot."], answer: "Tea, please.", explanation: "선택 의문문 → 둘 중 하나를 고릅니다." },
+  { question: "You've already submitted the report, haven't you?", options: ["Yes, this morning.", "On the desk.", "A few pages.", "No, thank you."], answer: "Yes, this morning.", explanation: "부가 의문문 → 사실 여부로 답합니다." },
+  { question: "How do I get to the airport?", options: ["You can take the subway.", "Around noon.", "Two suitcases.", "It was delayed."], answer: "You can take the subway.", explanation: "How(방법) → 수단으로 답합니다." },
+  { question: "Should we reschedule the meeting?", options: ["That's a good idea.", "In room 204.", "Five participants.", "It's on Monday."], answer: "That's a good idea.", explanation: "제안 의문문 → 수락/거절로 답합니다." },
+  { question: "What time does the store open?", options: ["At nine in the morning.", "On Main Street.", "A clothing store.", "Yes, it's open."], answer: "At nine in the morning.", explanation: "What time → 시각으로 답합니다." },
+];
+const P3_BANK = [
+  { question: "What are the speakers mainly discussing?", options: ["A product launch", "A vacation plan", "A job interview", "A building repair"], answer: "A product launch", explanation: "대화 주제는 도입부에서 파악합니다." },
+  { question: "Where most likely are the speakers?", options: ["At an office", "At a restaurant", "At an airport", "At a hospital"], answer: "At an office", explanation: "장소 단서(업무 어휘)를 종합합니다." },
+  { question: "What does the man ask the woman to do?", options: ["Send an email", "Book a flight", "Prepare slides", "Call a client"], answer: "Send an email", explanation: "요청 표현(Could you ~?)을 듣습니다." },
+  { question: "What problem does the woman mention?", options: ["A deadline was missed", "A file is corrupted", "A room is unavailable", "A budget was cut"], answer: "A deadline was missed", explanation: "문제점은 부정 표현 뒤에 나옵니다." },
+  { question: "What will the speakers probably do next?", options: ["Review a document", "Leave the building", "Have lunch", "Call a manager"], answer: "Review a document", explanation: "마지막 발화에서 다음 행동을 파악합니다." },
+  { question: "Why is the man calling?", options: ["To confirm an order", "To request a refund", "To schedule a tour", "To cancel a meeting"], answer: "To confirm an order", explanation: "전화 목적은 초반에 제시됩니다." },
+  { question: "What does the woman suggest?", options: ["Hiring more staff", "Lowering the price", "Moving the date", "Updating software"], answer: "Hiring more staff", explanation: "제안 표현(Why don't we ~?)을 듣습니다." },
+  { question: "What is implied about the company?", options: ["It is expanding", "It is closing", "It is relocating soon", "It is understaffed"], answer: "It is expanding", explanation: "암시 문제는 전체 맥락으로 추론합니다." },
+  { question: "According to the man, what is included?", options: ["A free installation", "An extended warranty", "A user manual", "A discount coupon"], answer: "A free installation", explanation: "세부 정보는 키워드를 듣고 매칭합니다." },
+];
+const P4_BANK = [
+  { question: "What is the purpose of the talk?", options: ["To announce a policy change", "To introduce a speaker", "To advertise a product", "To report sales figures"], answer: "To announce a policy change", explanation: "담화 목적은 도입부에서 제시됩니다." },
+  { question: "Who most likely is the speaker?", options: ["A company manager", "A tour guide", "A radio host", "A flight attendant"], answer: "A company manager", explanation: "화자 신분은 어휘·상황으로 추론합니다." },
+  { question: "Who is the intended audience?", options: ["New employees", "Conference attendees", "Restaurant customers", "Airline passengers"], answer: "New employees", explanation: "청자 대상은 인사말/호칭에서 파악합니다." },
+  { question: "What does the speaker ask listeners to do?", options: ["Fill out a form", "Visit a website", "Turn off phones", "Take a brochure"], answer: "Fill out a form", explanation: "요청 사항은 후반부에 자주 나옵니다." },
+  { question: "What will happen next?", options: ["A tour will begin", "A break will start", "A video will play", "A vote will be held"], answer: "A tour will begin", explanation: "다음 일정은 마지막 문장에서 확인합니다." },
+  { question: "What is mentioned about the schedule?", options: ["It has been changed", "It is fully booked", "It will be emailed", "It is on the website"], answer: "It has been changed", explanation: "세부 정보를 키워드로 매칭합니다." },
+  { question: "Where is the announcement being made?", options: ["At a train station", "At a museum", "At a bank", "At a factory"], answer: "At a train station", explanation: "장소 단서를 종합해 판단합니다." },
+  { question: "What problem is mentioned?", options: ["A delay in service", "A staff shortage", "A power outage", "A price increase"], answer: "A delay in service", explanation: "문제는 부정/사과 표현 뒤에 나옵니다." },
+  { question: "What does the speaker recommend?", options: ["Arriving early", "Booking online", "Bringing an umbrella", "Parking nearby"], answer: "Arriving early", explanation: "권고 표현(I recommend ~)을 듣습니다." },
+];
+
+const LC_QUIZZES = (() => {
+  const map = {};
+  const partIdx = {};
+  LC_FILES.forEach((f) => {
+    partIdx[f.part] = (partIdx[f.part] || 0);
+    const idx = partIdx[f.part]++;
+    const n = f.part === "Part 1" ? 6 : f.part === "Part 2" ? 7 : 9;
+    const bank = f.part === "Part 1" ? P1_BANK : f.part === "Part 2" ? P2_BANK : f.part === "Part 3" ? P3_BANK : P4_BANK;
+    const arr = [];
+    for (let i = 0; i < n; i++) {
+      const b = bank[(idx * n + i) % bank.length];
+      arr.push({ question: b.question, options: b.options.slice(), answer: b.answer, explanation: b.explanation });
+    }
+    map[f.id] = arr;
+  });
+  return map;
+})();
+
+// ===================== 유틸 =====================
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function fmtTime(s) {
+  if (!s || isNaN(s)) return "0:00";
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ":" + (sec < 10 ? "0" : "") + sec;
+}
+function fmtDate(ts) {
+  if (!ts) return "-";
+  const d = new Date(ts);
+  return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getDate()).padStart(2, "0");
+}
+const NUM = ["A", "B", "C", "D"];
+
+// ===================== Supabase 저장 =====================
+async function upsertWrong(table, matchCol, matchVal, insertRow) {
+  if (!sbClient) throw new Error("Supabase 미연결");
+  const { data, error } = await sbClient.from(table).select("id,wrong_count").eq(matchCol, matchVal).limit(1);
+  if (error) throw error;
+  const now = new Date().toISOString();
+  if (data && data.length) {
+    const row = data[0];
+    const { error: e2 } = await sbClient.from(table).update({ wrong_count: (row.wrong_count || 0) + 1, last_wrong_at: now }).eq("id", row.id);
+    if (e2) throw e2;
+  } else {
+    const { error: e3 } = await sbClient.from(table).insert(Object.assign({}, insertRow, { wrong_count: 1, last_wrong_at: now }));
+    if (e3) throw e3;
+  }
+}
+
+// ===================== 공통 UI =====================
+function Header({ title, onBack, meta }) {
+  return (
+    <div className="hdr">
+      {onBack && <button className="back" onClick={onBack}>‹</button>}
+      <h1>{title}</h1>
+      {meta && <span className="meta">{meta}</span>}
+    </div>
+  );
+}
+
+function ProgressBar({ cur, total }) {
+  const pct = total ? Math.round((cur / total) * 100) : 0;
+  return (
+    <div>
+      <div className="prog-label"><span>진행</span><span>{cur} / {total}</span></div>
+      <div className="prog"><div style={{ width: pct + "%" }} /></div>
+    </div>
+  );
+}
+
+function OptionList({ options, picked, answer, onPick, disabled }) {
+  return (
+    <div className="opts">
+      {options.map((opt, i) => {
+        let cls = "opt";
+        if (picked != null) {
+          if (opt === answer) cls += " correct";
+          else if (opt === picked && opt !== answer) cls += " wrong";
+        }
+        return (
+          <button key={i} className={cls} disabled={disabled} onClick={() => onPick(opt)}>
+            <span className="ob">{NUM[i]}</span><span>{opt}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ===================== 단어 모드 =====================
+function WordMode({ onHome }) {
+  const { notify } = useContext(AppCtx);
+  const [deck] = useState(() => shuffle(WORDS));
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [right, setRight] = useState(0);
+  const [wrong, setWrong] = useState(0);
+  const [done, setDone] = useState(false);
+
+  const cur = deck[i];
+  const opts = useMemo(() => {
+    if (!cur) return [];
+    const others = shuffle(WORDS.filter((w) => w.meaning !== cur.meaning)).slice(0, 3).map((w) => w.meaning);
+    return shuffle([cur.meaning, ...others]);
+  }, [i]);
+
+  const pick = async (opt) => {
+    if (picked != null) return;
+    setPicked(opt);
+    if (opt === cur.meaning) {
+      setRight((r) => r + 1);
+    } else {
+      setWrong((w) => w + 1);
+      try {
+        await upsertWrong("wrong_words", "word", cur.word, { word: cur.word, meaning: cur.meaning, example: cur.example });
+      } catch (e) {
+        notify("오답 저장 실패 (Supabase): " + (e.message || e), true);
+      }
+    }
+  };
+
+  const next = () => {
+    if (i + 1 >= deck.length) { setDone(true); return; }
+    setI(i + 1);
+    setPicked(null);
+  };
+
+  if (done) {
+    return (
+      <div className="app">
+        <Header title="단어 학습 결과" onBack={onHome} />
+        <div className="body">
+          <div className="result">
+            <div className="em">🎉</div>
+            <h2>단어 세션 완료!</h2>
+            <div className="score-row">
+              <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{right}</div><div className="l">맞은 단어</div></div>
+              <div className="sc"><div className="n" style={{ color: "var(--red)" }}>{wrong}</div><div className="l">틀린 단어</div></div>
+            </div>
+            <button className="btn primary" onClick={onHome}>홈으로</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <Header title="📚 단어 학습" onBack={onHome} meta={`${i + 1}/${deck.length}`} />
+      <div className="body">
+        <ProgressBar cur={i + 1} total={deck.length} />
+        <div className="card">
+          <div className="word">{cur.word}</div>
+          <div className="ex">{cur.example}</div>
+        </div>
+        <OptionList options={opts} picked={picked} answer={cur.meaning} onPick={pick} disabled={picked != null} />
+        {picked != null && (
+          <div className={"explain " + (picked === cur.meaning ? "ok" : "no")}>
+            {picked === cur.meaning ? "✅ 정답입니다!" : "❌ 오답! 정답: "}<b>{cur.meaning}</b>
+          </div>
+        )}
+        {picked != null && (
+          <button className="btn primary nav-btn-row" onClick={next}>
+            {i + 1 >= deck.length ? "결과 보기" : "다음 단어 →"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===================== RC 모드 =====================
+function RcMode({ onHome }) {
+  const { notify } = useContext(AppCtx);
+  const chapters = useMemo(() => {
+    const m = {};
+    RC_QUIZZES.forEach((q) => { m[q.chapter] = (m[q.chapter] || 0) + 1; });
+    return Object.keys(m).map((c) => ({ name: c, count: m[c] }));
+  }, []);
+  const [chapter, setChapter] = useState(null);
+  const [quizzes, setQuizzes] = useState([]);
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [right, setRight] = useState(0);
+  const [wrong, setWrong] = useState(0);
+  const [done, setDone] = useState(false);
+
+  const start = (name) => {
+    setChapter(name);
+    setQuizzes(RC_QUIZZES.filter((q) => q.chapter === name));
+    setI(0); setPicked(null); setRight(0); setWrong(0); setDone(false);
+  };
+
+  const cur = quizzes[i];
+  const pick = async (opt) => {
+    if (picked != null) return;
+    setPicked(opt);
+    if (opt === cur.answer) {
+      setRight((r) => r + 1);
+    } else {
+      setWrong((w) => w + 1);
+      try {
+        await upsertWrong("wrong_rc", "question", cur.question, { chapter: cur.chapter, question: cur.question, correct_answer: cur.answer, user_answer: opt });
+      } catch (e) {
+        notify("오답 저장 실패 (Supabase): " + (e.message || e), true);
+      }
+    }
+  };
+  const next = () => {
+    if (i + 1 >= quizzes.length) { setDone(true); return; }
+    setI(i + 1); setPicked(null);
+  };
+
+  if (!chapter) {
+    return (
+      <div className="app">
+        <Header title="📖 RC 학습" onBack={onHome} />
+        <div className="body">
+          <div className="list">
+            {chapters.map((c) => (
+              <div key={c.name} className="list-item" onClick={() => start(c.name)}>
+                <div className="li-ic" style={{ background: "var(--blue)" }}>RC</div>
+                <div><div className="li-tt">{c.name}</div><div className="li-sb">{c.count}문제</div></div>
+                <div className="li-ar">›</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div className="app">
+        <Header title="RC 결과" onBack={() => setChapter(null)} />
+        <div className="body">
+          <div className="result">
+            <div className="em">📖</div>
+            <h2>{chapter} 완료!</h2>
+            <div className="score-row">
+              <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{right}</div><div className="l">정답</div></div>
+              <div className="sc"><div className="n" style={{ color: "var(--red)" }}>{wrong}</div><div className="l">오답</div></div>
+            </div>
+            <button className="btn primary" onClick={() => setChapter(null)}>다른 챕터 선택</button>
+            <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <Header title={chapter} onBack={() => setChapter(null)} meta={`${i + 1}/${quizzes.length}`} />
+      <div className="body">
+        <ProgressBar cur={i + 1} total={quizzes.length} />
+        <div className="qbox">
+          <span className="qtag">{cur.chapter}</span>
+          <div className="qtext">{cur.question}</div>
+        </div>
+        <OptionList options={cur.options} picked={picked} answer={cur.answer} onPick={pick} disabled={picked != null} />
+        {picked != null && (
+          <div className={"explain " + (picked === cur.answer ? "ok" : "no")}>
+            {picked === cur.answer ? "✅ 정답! " : "❌ 오답! 정답: "}<b>{cur.answer}</b><br />{cur.explanation}
+          </div>
+        )}
+        {picked != null && (
+          <button className="btn primary nav-btn-row" onClick={next}>
+            {i + 1 >= quizzes.length ? "결과 보기" : "다음 문제 →"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===================== 오디오 플레이어 =====================
+function AudioPlayer({ file }) {
+  const ref = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [cur, setCur] = useState(0);
+  const [dur, setDur] = useState(0);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    const a = ref.current;
+    if (!a) return;
+    const onTime = () => setCur(a.currentTime);
+    const onMeta = () => setDur(a.duration);
+    const onEnd = () => setPlaying(false);
+    const onErr = () => setErr(true);
+    a.addEventListener("timeupdate", onTime);
+    a.addEventListener("loadedmetadata", onMeta);
+    a.addEventListener("ended", onEnd);
+    a.addEventListener("error", onErr);
+    return () => {
+      a.removeEventListener("timeupdate", onTime);
+      a.removeEventListener("loadedmetadata", onMeta);
+      a.removeEventListener("ended", onEnd);
+      a.removeEventListener("error", onErr);
+    };
+  }, [file]);
+
+  const toggle = () => {
+    const a = ref.current;
+    if (!a) return;
+    if (playing) { a.pause(); setPlaying(false); }
+    else { a.play().then(() => setPlaying(true)).catch(() => setErr(true)); }
+  };
+  const seek = (e) => {
+    const a = ref.current;
+    if (a) { a.currentTime = Number(e.target.value); setCur(Number(e.target.value)); }
+  };
+  const skip = (sec) => {
+    const a = ref.current;
+    if (a) { a.currentTime = Math.max(0, Math.min(dur || 0, a.currentTime + sec)); }
+  };
+
+  return (
+    <div className="player">
+      <audio ref={ref} src={"./audio/" + file.fileName} preload="metadata" />
+      <div className="ptitle">🎧 {file.title}</div>
+      <div className="psub">{file.fileName}{err ? " · ⚠️ 파일을 찾을 수 없어요" : ""}</div>
+      <input className="seek" type="range" min="0" max={dur || 0} step="0.1" value={cur} onChange={seek} />
+      <div className="times"><span>{fmtTime(cur)}</span><span>{fmtTime(dur)}</span></div>
+      <div className="ctrls">
+        <button className="pbtn" onClick={() => skip(-5)}>« 5초</button>
+        <button className="pbtn play" onClick={toggle}>{playing ? "⏸" : "▶"}</button>
+        <button className="pbtn" onClick={() => skip(5)}>5초 »</button>
+      </div>
+    </div>
+  );
+}
+
+// ===================== LC 모드 =====================
+function LcMode({ onHome }) {
+  const { notify } = useContext(AppCtx);
+  const parts = useMemo(() => {
+    const order = ["Part 1", "Part 2", "Part 3", "Part 4"];
+    const m = {};
+    LC_FILES.forEach((f) => { (m[f.part] = m[f.part] || []).push(f); });
+    return order.map((p) => ({ part: p, files: m[p] || [] }));
+  }, []);
+
+  const [file, setFile] = useState(null);
+  const [round, setRound] = useState(1); // 1:듣기, 2:풀기, 3:오답
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [wrongList, setWrongList] = useState([]); // round2에서 틀린 문제
+  const [r2done, setR2done] = useState(false);
+
+  const quizzes = file ? LC_QUIZZES[file.id] : [];
+  const roundQuizzes = round === 3 ? wrongList : quizzes;
+  const cur = roundQuizzes[i];
+
+  const openFile = (f) => {
+    setFile(f); setRound(1); setI(0); setPicked(null); setWrongList([]); setR2done(false);
+  };
+  const startRound = (r) => {
+    setRound(r); setI(0); setPicked(null);
+    if (r === 2) { setWrongList([]); setR2done(false); }
+  };
+
+  const pick = async (opt) => {
+    if (picked != null) return;
+    setPicked(opt);
+    if (opt !== cur.answer) {
+      if (round === 2) setWrongList((w) => [...w, cur]);
+      try {
+        await upsertWrong("wrong_lc", "question", cur.question, { part: file.part, file_name: file.fileName, question: cur.question, correct_answer: cur.answer, user_answer: opt });
+      } catch (e) {
+        notify("오답 저장 실패 (Supabase): " + (e.message || e), true);
+      }
+    }
+  };
+  const next = () => {
+    if (i + 1 >= roundQuizzes.length) {
+      if (round === 2) setR2done(true);
+      else if (round === 3) setR2done(true);
+      return;
+    }
+    setI(i + 1); setPicked(null);
+  };
+
+  // 파트/파일 목록
+  if (!file) {
+    return (
+      <div className="app">
+        <Header title="🎧 LC 학습" onBack={onHome} />
+        <div className="body">
+          {parts.map((p) => (
+            <div key={p.part}>
+              <div className="group-title">{p.part} · {p.files.length}개</div>
+              <div className="list">
+                {p.files.map((f) => (
+                  <div key={f.id} className="list-item" onClick={() => openFile(f)}>
+                    <div className="li-ic" style={{ background: "var(--orange)" }}>{f.title.split("-")[1].trim()}</div>
+                    <div><div className="li-tt">{f.title}</div><div className="li-sb">{LC_QUIZZES[f.id].length}문제</div></div>
+                    <div className="li-ar">›</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const RoundPills = () => (
+    <div className="round-pills">
+      <div className={"round-pill " + (round === 1 ? "active" : round > 1 ? "done" : "")}>1회차 듣기</div>
+      <div className={"round-pill " + (round === 2 ? "active" : round > 2 ? "done" : "")}>2회차 풀기</div>
+      <div className={"round-pill " + (round === 3 ? "active" : "")}>3회차 오답</div>
+    </div>
+  );
+
+  // 1회차: 듣기만
+  if (round === 1) {
+    return (
+      <div className="app">
+        <Header title={file.title} onBack={() => setFile(null)} meta="1회차" />
+        <div className="body">
+          <RoundPills />
+          <AudioPlayer file={file} />
+          <p className="empty" style={{ padding: "20px 10px" }}>먼저 음원을 충분히 들어보세요.<br />준비되면 문제를 풀어봅니다.</p>
+          <button className="btn blue" onClick={() => startRound(2)}>2회차: 문제 풀기 →</button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2회차 / 3회차 결과
+  if (r2done) {
+    const noWrong = wrongList.length === 0;
+    return (
+      <div className="app">
+        <Header title={file.title} onBack={() => setFile(null)} meta={round === 2 ? "2회차" : "3회차"} />
+        <div className="body">
+          <RoundPills />
+          <div className="result">
+            <div className="em">{round === 2 ? (noWrong ? "🌟" : "📝") : "✅"}</div>
+            <h2>{round === 2 ? "2회차 완료!" : "3회차 완료!"}</h2>
+            {round === 2 ? (
+              <p className="empty" style={{ padding: "10px" }}>
+                {noWrong ? "오답이 없어요! 완벽합니다 🎉" : `오답 ${wrongList.length}문제를 다시 풀어볼까요?`}
+              </p>
+            ) : (
+              <p className="empty" style={{ padding: "10px" }}>오답 복습까지 끝냈어요!</p>
+            )}
+            {round === 2 && !noWrong && <button className="btn green" onClick={() => startRound(3)}>3회차: 오답만 다시 풀기 →</button>}
+            <button className="btn ghost mt8" onClick={() => setFile(null)}>파일 목록으로</button>
+            <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2/3회차 문제 풀이
+  return (
+    <div className="app">
+      <Header title={file.title} onBack={() => setFile(null)} meta={`${round}회차 ${i + 1}/${roundQuizzes.length}`} />
+      <div className="body">
+        <RoundPills />
+        <AudioPlayer file={file} />
+        <ProgressBar cur={i + 1} total={roundQuizzes.length} />
+        <div className="qbox">
+          <span className="qtag">{file.part} · Q{i + 1}</span>
+          <div className="qtext">{cur.question}</div>
+        </div>
+        <OptionList options={cur.options} picked={picked} answer={cur.answer} onPick={pick} disabled={picked != null} />
+        {picked != null && (
+          <div className={"explain " + (picked === cur.answer ? "ok" : "no")}>
+            {picked === cur.answer ? "✅ 정답! " : "❌ 오답! 정답: "}<b>{cur.answer}</b><br />{cur.explanation}
+          </div>
+        )}
+        {picked != null && (
+          <button className="btn primary nav-btn-row" onClick={next}>
+            {i + 1 >= roundQuizzes.length ? "회차 완료" : "다음 →"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===================== 오답노트 =====================
+function WrongNote({ onHome }) {
+  const { notify } = useContext(AppCtx);
+  const [tab, setTab] = useState("word");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [confirmAll, setConfirmAll] = useState(false);
+
+  const tableOf = (t) => t === "word" ? "wrong_words" : t === "rc" ? "wrong_rc" : "wrong_lc";
+
+  const load = async (t) => {
+    setConfirmAll(false);
+    if (!sbClient) { notify("Supabase 미연결 상태예요", true); setRows([]); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await sbClient.from(tableOf(t)).select("*").order("wrong_count", { ascending: false });
+      if (error) throw error;
+      setRows(data || []);
+    } catch (e) {
+      notify("불러오기 실패: " + (e.message || e), true);
+      setRows([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(tab); }, [tab]);
+
+  const delOne = async (id) => {
+    try {
+      const { error } = await sbClient.from(tableOf(tab)).delete().eq("id", id);
+      if (error) throw error;
+      setRows((r) => r.filter((x) => x.id !== id));
+    } catch (e) { notify("삭제 실패: " + (e.message || e), true); }
+  };
+  const delAll = async () => {
+    try {
+      const { error } = await sbClient.from(tableOf(tab)).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) throw error;
+      setRows([]); setConfirmAll(false);
+      notify("전체 삭제 완료");
+    } catch (e) { notify("전체 삭제 실패: " + (e.message || e), true); }
+  };
+
+  return (
+    <div className="app">
+      <Header title="📝 오답노트" onBack={onHome} />
+      <div className="body">
+        <div className="tabs">
+          <button className={"tab " + (tab === "word" ? "active" : "")} onClick={() => setTab("word")}>단어</button>
+          <button className={"tab " + (tab === "rc" ? "active" : "")} onClick={() => setTab("rc")}>RC</button>
+          <button className={"tab " + (tab === "lc" ? "active" : "")} onClick={() => setTab("lc")}>LC</button>
+        </div>
+
+        <div className="toolbar">
+          <button className="btn ghost" onClick={() => load(tab)}>🔄 새로고침</button>
+          {rows.length > 0 && (confirmAll
+            ? <button className="btn" style={{ background: "var(--red)", color: "#fff" }} onClick={delAll}>정말 전체삭제</button>
+            : <button className="btn ghost" onClick={() => setConfirmAll(true)}>🗑 전체삭제</button>)}
+        </div>
+
+        {loading ? <div className="spinner">불러오는 중…</div>
+          : rows.length === 0 ? <div className="empty"><div className="e">🗒️</div>오답 기록이 없어요</div>
+          : (
+            <div>
+              {rows.map((r) => (
+                <div key={r.id} className="wcard">
+                  {tab === "word" && (
+                    <div>
+                      <div className="wtop">
+                        <div><div className="wword">{r.word}</div><div className="wmean">{r.meaning}</div></div>
+                        <span className="badge">{r.wrong_count}회</span>
+                      </div>
+                      <div className="wex">{r.example}</div>
+                      <div className="wline"><span className="lab">마지막: </span>{fmtDate(r.last_wrong_at)}</div>
+                    </div>
+                  )}
+                  {tab === "rc" && (
+                    <div>
+                      <span className="chip">{r.chapter}</span>
+                      <div className="wtop">
+                        <div className="wq">{r.question}</div>
+                        <span className="badge">{r.wrong_count}회</span>
+                      </div>
+                      <div className="wline"><span className="lab">정답: </span><b>{r.correct_answer}</b></div>
+                      <div className="wline"><span className="lab">내 답: </span>{r.user_answer}</div>
+                      <div className="wline"><span className="lab">마지막: </span>{fmtDate(r.last_wrong_at)}</div>
+                    </div>
+                  )}
+                  {tab === "lc" && (
+                    <div>
+                      <span className="chip">{r.part} · {r.file_name}</span>
+                      <div className="wtop">
+                        <div className="wq">{r.question}</div>
+                        <span className="badge">{r.wrong_count}회</span>
+                      </div>
+                      <div className="wline"><span className="lab">정답: </span><b>{r.correct_answer}</b></div>
+                      <div className="wline"><span className="lab">내 답: </span>{r.user_answer}</div>
+                      <div className="wline"><span className="lab">마지막: </span>{fmtDate(r.last_wrong_at)}</div>
+                    </div>
+                  )}
+                  <button className="del" onClick={() => delOne(r.id)} style={{ marginTop: 8 }}>삭제</button>
+                </div>
+              ))}
+            </div>
+          )}
+      </div>
+    </div>
+  );
+}
+
+// ===================== 홈 =====================
+function Home({ go }) {
+  return (
+    <div className="app">
+      <div className="body">
+        <div className="home-hero">
+          <div className="logo">🚇</div>
+          <h2>토익 지하철 공부</h2>
+          <p>출퇴근길에 단어·RC·LC를 가볍게!</p>
+        </div>
+        <div className="home-grid">
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#3b82f6,#2563eb)" }} onClick={() => go("word")}>
+            <div className="ic">📚</div><div className="nm">단어 학습</div><div className="ds">{WORDS.length}개 단어</div>
+          </button>
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#22a06b,#179561)" }} onClick={() => go("rc")}>
+            <div className="ic">📖</div><div className="nm">RC 학습</div><div className="ds">{RC_QUIZZES.length}문제</div>
+          </button>
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#f08c2e,#e07b1a)" }} onClick={() => go("lc")}>
+            <div className="ic">🎧</div><div className="nm">LC 학습</div><div className="ds">{LC_FILES.length}개 파일</div>
+          </button>
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#5b6b8c,#3f4d6b)" }} onClick={() => go("wrong")}>
+            <div className="ic">📝</div><div className="nm">오답노트</div><div className="ds">단어·RC·LC</div>
+          </button>
+        </div>
+        {!sbClient && (
+          <div className="explain no" style={{ marginTop: 16 }}>
+            ⚠️ Supabase에 연결되지 않았습니다. 오답 저장/조회가 동작하지 않을 수 있어요. (학습 기능은 정상)
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===================== App =====================
+function App() {
+  const [screen, setScreen] = useState("home");
+  const [toast, setToast] = useState(null);
+  const notify = (msg, isErr) => {
+    setToast({ msg, isErr });
+    setTimeout(() => setToast(null), 3000);
+  };
+  const go = (s) => setScreen(s);
+  const home = () => setScreen("home");
+
+  return (
+    <AppCtx.Provider value={{ notify }}>
+      {screen === "home" && <Home go={go} />}
+      {screen === "word" && <WordMode onHome={home} />}
+      {screen === "rc" && <RcMode onHome={home} />}
+      {screen === "lc" && <LcMode onHome={home} />}
+      {screen === "wrong" && <WrongNote onHome={home} />}
+      {toast && <div className={"toast " + (toast.isErr ? "err" : "")}>{toast.msg}</div>}
+    </AppCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
