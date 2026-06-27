@@ -632,7 +632,7 @@ const RC_QUIZZES = [
 
 // ===================== 데이터: LC 파일 =====================
 // ※ Part 1(id 1~4)은 오늘의 학습/LC 모드에서 제외 — Part 2~4만 사용
-const LC_FILES = [
+const LC_FILES_OLD_UNUSED = [
   { id: 5, part: "Part 2", fileName: "part2_01.mp3", title: "Part 2 - 01" },
   { id: 6, part: "Part 2", fileName: "part2_02.mp3", title: "Part 2 - 02" },
   { id: 7, part: "Part 2", fileName: "part2_03.mp3", title: "Part 2 - 03" },
@@ -722,21 +722,74 @@ const P4_BANK = [
   { question: "What does the speaker recommend?", options: ["Arriving early", "Booking online", "Bringing an umbrella", "Parking nearby"], answer: "Arriving early", explanation: "권고 표현(I recommend ~)을 듣습니다." },
 ];
 
+// ===================== LC 실제 데이터 (음원 D{n}_HT.mp3 와 1:1 동기화) =====================
+// Part 2: D3~D6 (선택지 3개) · Part 3: D7~D13 · Part 4: D14~D20 (선택지 4개)
+// questions가 빈 배열이면 '준비중'으로 표시됨. 폴더 3~20 사진에서 추출한 데이터를 채워 넣을 것.
+// question 형식: { question, options:[...], answer:(options 중 하나와 정확히 일치), explanation, script? }
+const LC_DAYS = [
+  { day: 3, part: "Part 2", questions: [] },
+  { day: 4, part: "Part 2", questions: [] },
+  { day: 5, part: "Part 2", questions: [] },
+  { day: 6, part: "Part 2", questions: [] },
+  { day: 7, part: "Part 3", questions: [] },
+  { day: 8, part: "Part 3", questions: [] },
+  { day: 9, part: "Part 3", questions: [] },
+  { day: 10, part: "Part 3", questions: [] },
+  { day: 11, part: "Part 3", questions: [] },
+  { day: 12, part: "Part 3", questions: [] },
+  { day: 13, part: "Part 3", questions: [] },
+  { day: 14, part: "Part 4", questions: [] },
+  { day: 15, part: "Part 4", questions: [
+    { question: "01. Why is the speaker calling?", options: ["(A) To introduce a new service", "(B) To inform him of a completed task", "(C) To request some information", "(D) To verify an office address"], answer: "(B) To inform him of a completed task", explanation: "지문에서 'called to inform you that the report has been completed'라고 했으므로 완료된 업무를 알리기 위해 전화. inform(알리다), completed task(완료된 업무)" },
+    { question: "02. What does the speaker offer to do?", options: ["(A) Fill in a form", "(B) Order a product", "(C) Send a brochure", "(D) Meet with a representative"], answer: "(C) Send a brochure", explanation: "지문에서 'I can also send you a copy of our new brochure'라고 했으므로 브로셔를 보내겠다고 제안. brochure(안내 책자)" },
+    { question: "03. How can the listener get additional information?", options: ["(A) By making a phone call", "(B) By checking a Web site", "(C) By going to a help desk", "(D) By sending an e-mail"], answer: "(D) By sending an e-mail", explanation: "지문에서 'please send an e-mail to jacksonphil@labservice.com'이라고 했으므로 이메일을 보내면 됨." },
+    { question: "04. Who most likely are the listeners?", options: ["(A) Actors", "(B) Writers", "(C) Musicians", "(D) Singers"], answer: "(C) Musicians", explanation: "지문에서 'I'd like to introduce you to Sonia Summers, the newest member of our orchestra'라고 했으므로 오케스트라 단원(음악가)들이 청자." },
+    { question: "05. What is mentioned about Sonia Summers?", options: ["(A) She recently graduated from college.", "(B) She previously worked overseas.", "(C) She has prepared a brief speech.", "(D) She has received an award."], answer: "(B) She previously worked overseas.", explanation: "지문에서 'Ms. Summers played in Germany with the Berlin Orchestra for over two years before returning to Seattle'라고 했으므로 해외에서 근무한 경력이 있음." },
+    { question: "06. According to the speaker, what will take place next week?", options: ["(A) A live performance", "(B) A charity dinner", "(C) An employee orientation", "(D) A business opening"], answer: "(A) A live performance", explanation: "지문에서 'she will play with us in the concert next week'라고 했으므로 다음 주에 라이브 공연이 있음." },
+    { question: "07. What is being announced?", options: ["(A) The increase of a budget", "(B) The acceptance of an award", "(C) The completion of a project", "(D) The expansion of a team"], answer: "(B) The acceptance of an award", explanation: "지문에서 'our company has received a government award for being one of the most environment-friendly companies'라고 했으므로 정부 환경상 수상 발표." },
+    { question: "08. According to the speaker, why does the company recycle materials?", options: ["(A) To follow government regulations", "(B) To promote sales of products", "(C) To reduce consumption", "(D) To meet customers' needs"], answer: "(C) To reduce consumption", explanation: "지문에서 'we recycle materials to minimize the resources that we consume'라고 했으므로 자원 소비를 줄이기 위해 재활용함." },
+    { question: "09. What are the listeners asked to do?", options: ["(A) Contact a supplier", "(B) Make a donation", "(C) Offer some ideas", "(D) Organize a seminar"], answer: "(C) Offer some ideas", explanation: "지문에서 'what I'd like you to do is to come up with some ideas to help'라고 했으므로 아이디어를 제안해달라고 요청." },
+    { question: "10. What is the main topic of the talk?", options: ["(A) Developing customer surveys", "(B) Increasing company sales", "(C) Presenting business proposals", "(D) Improving phone communication"], answer: "(D) Improving phone communication", explanation: "지문에서 'I'd like to discuss how we can improve our communications with the customers who contact this call center'라고 했으므로 전화 소통 개선이 주제." },
+    { question: "11. Who most likely are the listeners?", options: ["(A) Advertising consultants", "(B) Corporate managers", "(C) Call center agents", "(D) Training instructors"], answer: "(C) Call center agents", explanation: "지문이 콜센터 고객 응대 방법에 대한 교육 내용이므로 청자는 콜센터 직원들." },
+    { question: "12. Why will the listeners be divided into groups?", options: ["(A) To perform an exercise", "(B) To have a discussion", "(C) To give a presentation", "(D) To prepare a speech"], answer: "(B) To have a discussion", explanation: "지문에서 'I'll then divide you into small groups to talk about it'이라고 했으므로 토론을 위해 그룹을 나눔." },
+    { question: "13. What is the purpose of the call?", options: ["(A) To inquire about a new product", "(B) To explain a government program", "(C) To reschedule an appointment", "(D) To offer details about funding approval"], answer: "(D) To offer details about funding approval", explanation: "지문에서 'the chairman has approved the funding for your research'라고 했으므로 연구비 승인 세부사항 전달이 목적." },
+    { question: "14. Why would the listener visit an office?", options: ["(A) To pick up a copy of a research project", "(B) To discuss some questions about a proposal", "(C) To sign a contract for a job position", "(D) To negotiate details of payment"], answer: "(B) To discuss some questions about a proposal", explanation: "지문에서 'we would like you to come to our office so that we can talk about some questions we have regarding your proposal'라고 했으므로 제안서 질문 논의를 위해 방문." },
+    { question: "15. What does the speaker request the listener do?", options: ["(A) Prepare a budget", "(B) Submit some legal documents", "(C) Observe a demonstration", "(D) Review some research results"], answer: "(A) Prepare a budget", explanation: "지문에서 'please prepare a detailed list of your expected project expenses'라고 했으므로 예상 비용 목록(예산) 준비를 요청." },
+    { question: "16. What is being advertised?", options: ["(A) A cell phone", "(B) A backpack", "(C) A battery", "(D) A fabric"], answer: "(A) A cell phone", explanation: "핵심 기능이 'solar panels can charge a typical cell phone'으로 휴대폰 충전이 주요 광고 포인트." },
+    { question: "17. What does the speaker say about the product?", options: ["(A) It is available for purchase online.", "(B) It has a charger function.", "(C) It comes in a variety of colors.", "(D) It is sold with a warranty."], answer: "(B) It has a charger function.", explanation: "지문에서 'solar panels can charge a typical cell phone and consumer electronics'라고 했으므로 충전 기능이 있음." },
+    { question: "18. Why does the speaker say, \"All of the participants were experienced hikers\"?", options: ["(A) To show that some feedback is reliable", "(B) To explain how a material was selected", "(C) To stress that further testing is needed", "(D) To specify the basis of a change"], answer: "(A) To show that some feedback is reliable", explanation: "경험 많은 하이커들의 긍정적 피드백임을 언급하며 제품 평가의 신뢰성을 강조." },
+    { question: "19. What is being promoted?", options: ["(A) A local newspaper", "(B) A design magazine", "(C) A history book", "(D) A technical journal"], answer: "(D) A technical journal", explanation: "지문에서 만화책 산업의 역사를 다룬 collector's edition 출간 관련 내용으로 기술적 출판물 홍보." },
+    { question: "20. What does the speaker recommend to do?", options: ["(A) Make a purchase soon", "(B) Visit a local museum", "(C) Mail in a form", "(D) Subscribe to a service"], answer: "(A) Make a purchase soon", explanation: "지문에서 'I recommend you make a purchase quickly because the offer is only good while supplies last'라고 했으므로 빨리 구매하도록 권고." },
+    { question: "21. According to the speaker, how much can the listener save on an item?", options: ["(A) 5 percent", "(B) 10 percent", "(C) 15 percent", "(D) 20 percent"], answer: "(C) 15 percent", explanation: "정답표 기준 (C). 지문에서 장기 회원 할인율을 확인할 것." },
+    { question: "22. Why does the speaker apologize?", options: ["(A) An executive has been delayed.", "(B) A machine has malfunctioned.", "(C) A report includes errors.", "(D) A speech has been canceled."], answer: "(B) A machine has malfunctioned.", explanation: "assembly plants에 새 기계를 설치했고 문제가 발생했다는 내용으로 기계 오작동이 사과 이유." },
+    { question: "23. What will the speaker talk about?", options: ["(A) Facility improvements", "(B) Production goals", "(C) Marketing strategies", "(D) Financial figures"], answer: "(A) Facility improvements", explanation: "지문에서 'I'd like to talk about the improvements we have made to our assembly plants'라고 했으므로 시설 개선이 주제." },
+    { question: "24. What did the listeners receive?", options: ["(A) Revised schedules", "(B) Product samples", "(C) A gift card", "(D) Informational materials"], answer: "(D) Informational materials", explanation: "지문에서 'the information packets you have been provided'라고 했으므로 정보 자료를 받음." },
+    { question: "25. Where is the event being held?", options: ["(A) At an educational institute", "(B) At an accommodation facility", "(C) At a corporate headquarters", "(D) At a community center"], answer: "(B) At an accommodation facility", explanation: "지문에서 'Welcome to the fourth annual Youth Achievement Convention here at the Palace Hotel in London'이라고 했으므로 호텔(숙박 시설)." },
+    { question: "26. Look at the graphic. Who will be conducting role-playing exercises?", options: ["(A) Jack Smith", "(B) Oliver Gaines", "(C) Kelly Martin", "(D) Remy Tyler"], answer: "(C) Kelly Martin", explanation: "지문에서 'the presenter scheduled to speak at 1 p.m. has organized some role-playing exercises'라고 했고, 스케줄표에서 1 P.M. 발표자는 Kelly Martin." },
+    { question: "27. How can listeners get more information?", options: ["(A) By calling a number", "(B) By checking a bulletin board", "(C) By visiting a Web site", "(D) By asking a committee member"], answer: "(C) By visiting a Web site", explanation: "정답표 기준 (C). 지문에서 웹사이트를 통한 추가 정보 안내 내용 확인." },
+    { question: "28. What does the speaker say about the shop?", options: ["(A) It is celebrating its grand opening.", "(B) It has been recently expanded.", "(C) It is selling items at a discount.", "(D) It sponsors a book club."], answer: "(C) It is selling items at a discount.", explanation: "지문에서 'we will be offering significant discounts on all fiction and nonfiction books'라고 했으므로 할인 판매 중." },
+    { question: "29. Who is Andre Carrington?", options: ["(A) A famous author", "(B) A store employee", "(C) A literary critic", "(D) A local publisher"], answer: "(A) A famous author", explanation: "지문에서 'well-known author Andre Carrington'이라고 했으므로 유명 작가." },
+    { question: "30. Look at the graphic. Where have the fantasy books been moved to?", options: ["(A) Section 1", "(B) Section 2", "(C) Section 3", "(D) Section 4"], answer: "(A) Section 1", explanation: "지문에서 'Fantasy books have been moved to the area where the book signing will take place, right next to the main entrance'라고 했고, 매장 지도에서 입구(Entrance) 옆은 Section 1." },
+  ] },
+  { day: 16, part: "Part 4", questions: [] },
+  { day: 17, part: "Part 4", questions: [] },
+  { day: 18, part: "Part 4", questions: [] },
+  { day: 19, part: "Part 4", questions: [] },
+  { day: 20, part: "Part 4", questions: [] },
+];
+
+// 위 LC_DAYS에서 컴포넌트가 쓰는 LC_FILES / LC_QUIZZES 파생 (기존 인터페이스 유지)
+const LC_FILES = LC_DAYS.map((d) => ({
+  id: d.day,
+  day: d.day,
+  part: d.part,
+  fileName: "D" + d.day + "_HT.mp3",
+  title: d.part + " - D" + d.day,
+  count: d.questions.length,
+}));
 const LC_QUIZZES = (() => {
   const map = {};
-  const partIdx = {};
-  LC_FILES.forEach((f) => {
-    partIdx[f.part] = (partIdx[f.part] || 0);
-    const idx = partIdx[f.part]++;
-    const n = f.part === "Part 1" ? 6 : f.part === "Part 2" ? 7 : 9;
-    const bank = f.part === "Part 1" ? P1_BANK : f.part === "Part 2" ? P2_BANK : f.part === "Part 3" ? P3_BANK : P4_BANK;
-    const arr = [];
-    for (let i = 0; i < n; i++) {
-      const b = bank[(idx * n + i) % bank.length];
-      arr.push({ question: b.question, options: b.options.slice(), answer: b.answer, explanation: b.explanation });
-    }
-    map[f.id] = arr;
-  });
+  LC_DAYS.forEach((d) => { map[d.day] = d.questions; });
   return map;
 })();
 
@@ -1012,6 +1065,8 @@ function AudioPlayer({ file }) {
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
   const [err, setErr] = useState(false);
+  const [rate, setRate] = useState(1);
+  const setSpeed = (r) => { const a = ref.current; if (a) a.playbackRate = r; setRate(r); };
 
   useEffect(() => {
     const a = ref.current;
@@ -1058,6 +1113,14 @@ function AudioPlayer({ file }) {
         <button className="pbtn" onClick={() => skip(-5)}>« 5초</button>
         <button className="pbtn play" onClick={toggle}>{playing ? "⏸" : "▶"}</button>
         <button className="pbtn" onClick={() => skip(5)}>5초 »</button>
+      </div>
+      <div className="ctrls" style={{ marginTop: 8 }}>
+        {[0.75, 1, 1.25].map((r) => (
+          <button key={r} className="pbtn" onClick={() => setSpeed(r)}
+            style={rate === r ? { background: "var(--blue)", color: "#fff", borderColor: "var(--blue)" } : null}>
+            {r}x
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -1123,13 +1186,18 @@ function LcMode({ onHome }) {
             <div key={p.part}>
               <div className="group-title">{p.part} · {p.files.length}개</div>
               <div className="list">
-                {p.files.map((f) => (
-                  <div key={f.id} className="list-item" onClick={() => openFile(f)}>
-                    <div className="li-ic" style={{ background: "var(--orange)" }}>{f.title.split("-")[1].trim()}</div>
-                    <div><div className="li-tt">{f.title}</div><div className="li-sb">{LC_QUIZZES[f.id].length}문제</div></div>
-                    <div className="li-ar">›</div>
-                  </div>
-                ))}
+                {p.files.map((f) => {
+                  const cnt = (LC_QUIZZES[f.id] || []).length;
+                  const ready = cnt > 0;
+                  return (
+                    <div key={f.id} className="list-item" style={ready ? null : { opacity: 0.5 }}
+                      onClick={() => ready ? openFile(f) : notify("이 DAY는 아직 문제 준비중이에요", true)}>
+                      <div className="li-ic" style={{ background: ready ? "var(--orange)" : "var(--muted)" }}>{"D" + f.day}</div>
+                      <div><div className="li-tt">{f.title}</div><div className="li-sb">{ready ? cnt + "문제" : "🔒 준비중"}</div></div>
+                      <div className="li-ar">{ready ? "›" : ""}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -1314,6 +1382,11 @@ function WrongNote({ onHome }) {
                       <div className="wline"><span className="lab">정답: </span><b>{r.correct_answer}</b></div>
                       <div className="wline"><span className="lab">내 답: </span>{r.user_answer}</div>
                       <div className="wline"><span className="lab">마지막: </span>{fmtDate(r.last_wrong_at)}</div>
+                      {r.script && <div className="wex" style={{ whiteSpace: "pre-line" }}>📜 {r.script}</div>}
+                      <details style={{ marginTop: 8 }}>
+                        <summary style={{ cursor: "pointer", fontWeight: 700, color: "var(--blue)" }}>🔁 섀도잉 (음원 반복 · 속도조절)</summary>
+                        <AudioPlayer file={{ fileName: r.file_name, title: "섀도잉 · " + r.file_name, part: r.part }} />
+                      </details>
                     </div>
                   )}
                   <button className="del" onClick={() => delOne(r.id)} style={{ marginTop: 8 }}>삭제</button>
@@ -1419,7 +1492,7 @@ function DailyMode({ onHome, goWrong }) {
   const data = useMemo(() => ({
     words: shuffle(WORDS).slice(0, 20),
     rc: pickDailyRc(),
-    lc: shuffle(LC_FILES.filter((f) => f.id >= 5)).slice(0, 2),
+    lc: shuffle(LC_FILES.filter((f) => (LC_QUIZZES[f.id] || []).length > 0)).slice(0, 2),
   }), []);
   const [phase, setPhase] = useState("word");
   const [stat, setStat] = useState({ word: null, rc: null, lc: null });
