@@ -630,6 +630,88 @@ const RC_QUIZZES = [
   { type: "가정법", question: "Without your help, the project _____ failed.", options: ["would", "will have", "would have", "had"], answer: "would have", explanation: "Without = If it had not been for (가정법 과거완료). 주절은 would have+p.p." },
 ];
 
+// ===================== 데이터: 문법 카드 (RC 문법) =====================
+// 앞면: 규칙 제목 / 뒷면(탭): 규칙·예문·한국어·주의 + 미니 퀴즈
+const GRAMMAR_CARDS = [
+  { id: "G01", day: 1, category: "문장 구조", title: "주어 자리", rule: "주어 자리에는 '명사 역할'을 하는 것이 온다", items: [
+    { type: "명사구", example: "The devices of DC Electronics are dependable.", kr: "DC Electronics 사의 기계들은 믿을만하다." },
+    { type: "대명사", example: "He will need more assistants for the event.", kr: "그는 행사에 더 많은 보조자들이 필요할 것이다." },
+    { type: "동명사구", example: "Using the new accounting program is easy.", kr: "새로운 회계 프로그램을 사용하는 것은 쉽다." },
+    { type: "to부정사구", example: "To speak a foreign language requires practice.", kr: "외국어를 하는 것은 연습을 요한다." },
+  ], warning: "동사·형용사는 주어 자리에 올 수 없다!", quiz: { sentence: "The (reduce / reduction) of staff was due to the poor economy.", answer: "reduction", explanation: "주어 자리에는 명사가 와야 함. reduce(동사) X → reduction(명사) O" } },
+  { id: "G02", day: 1, category: "문장 구조", title: "동사 자리", rule: "동사 자리에는 수·시제·태가 맞는 동사가 온다", items: [
+    { type: "(조동사+)동사", example: "Our sales representatives can help you.", kr: "우리 판매 직원들이 도와드릴 수 있습니다." },
+    { type: "be + -ing", example: "Reynolds is selling all accessories at half price.", kr: "Reynolds는 모든 액세서리를 반값에 판매 중이다." },
+    { type: "be + p.p.", example: "The flight is expected to arrive at 7 p.m.", kr: "항공편은 저녁 7시에 도착할 것으로 예상된다." },
+    { type: "have + p.p.", example: "Ms. Bancroft has read the proposal.", kr: "Ms. Bancroft는 제안서를 읽었다." },
+  ], warning: "단수 주어 → 단수 동사 / 복수 주어 → 복수 동사", quiz: { sentence: "Economists (insists / insist) that market conditions will improve.", answer: "insist", explanation: "주어 Economists는 복수 → 복수 동사 insist" } },
+  { id: "G03", day: 2, category: "명사", title: "명사 자리와 어미", rule: "관사·소유격·전치사 뒤, 형용사 뒤에는 명사가 온다", items: [
+    { type: "관사 + 명사", example: "The introduction of the product was a success.", kr: "그 제품의 출시는 성공적이었다." },
+    { type: "전치사 + 명사", example: "We rely on the cooperation of all staff.", kr: "우리는 전 직원의 협조에 의존한다." },
+    { type: "형용사 + 명사", example: "She made a quick decision.", kr: "그녀는 빠른 결정을 내렸다." },
+  ], warning: "명사 어미: -tion, -ment, -ness, -ity, -ance/-ence. 가산명사 단수는 관사 필수!", quiz: { sentence: "The (manage / management) approved the new policy.", answer: "management", explanation: "관사 The 뒤 → 명사. management(경영진)" } },
+  { id: "G04", day: 3, category: "대명사", title: "인칭·재귀·지시대명사", rule: "격(주격/목적격/소유격)과 수에 맞는 대명사를 쓴다", items: [
+    { type: "소유격 + 명사", example: "Please submit your report by Friday.", kr: "금요일까지 보고서를 제출해 주세요." },
+    { type: "재귀대명사(강조/목적)", example: "He completed the task himself.", kr: "그는 그 일을 직접 끝냈다." },
+    { type: "지시대명사 that/those", example: "The results are better than those of last year.", kr: "결과가 작년의 것보다 더 좋다." },
+  ], warning: "주어=목적어가 같으면 재귀대명사! 비교 대상 반복은 that(단수)/those(복수)", quiz: { sentence: "Employees should bring (their / theirs) own laptops.", answer: "their", explanation: "명사(laptops) 앞 → 소유격 their. theirs는 소유대명사(단독)" } },
+  { id: "G05", day: 4, category: "형용사", title: "형용사 자리", rule: "명사 앞·보어 자리에 형용사가 온다", items: [
+    { type: "명사 수식", example: "We offer a reliable service.", kr: "우리는 믿을 수 있는 서비스를 제공한다." },
+    { type: "주격 보어", example: "The instructions are clear.", kr: "설명서가 명확하다." },
+    { type: "목적격 보어", example: "We found the seminar useful.", kr: "우리는 그 세미나가 유용하다고 느꼈다." },
+  ], warning: "부사는 명사를 수식할 수 없다! (수량형용사 many+가산복수 / much+불가산)", quiz: { sentence: "The new software is highly (effective / effectively).", answer: "effective", explanation: "be동사 뒤 보어 자리 → 형용사 effective" } },
+  { id: "G06", day: 5, category: "부사", title: "부사 자리", rule: "동사·형용사·부사·문장 전체를 수식하면 부사", items: [
+    { type: "동사 수식", example: "Sales increased significantly.", kr: "매출이 상당히 증가했다." },
+    { type: "형용사 수식", example: "The plan is highly effective.", kr: "그 계획은 매우 효과적이다." },
+    { type: "p.p. 앞 수식", example: "a recently published report", kr: "최근에 출간된 보고서" },
+  ], warning: "명사 자리(관사+___+명사)에는 부사가 아니라 형용사!", quiz: { sentence: "The team worked (efficient / efficiently) on the project.", answer: "efficiently", explanation: "동사 worked를 수식 → 부사 efficiently" } },
+  { id: "G07", day: 6, category: "동사", title: "시제", rule: "시간 표현 단서에 맞는 시제를 쓴다", items: [
+    { type: "현재완료(since/for)", example: "She has worked here since 2018.", kr: "그녀는 2018년부터 여기서 일해 왔다." },
+    { type: "미래(next~/tomorrow)", example: "The store will open next month.", kr: "그 가게는 다음 달에 문을 연다." },
+    { type: "과거완료(by the time+과거)", example: "By the time he arrived, the meeting had ended.", kr: "그가 도착했을 때 회의는 이미 끝나 있었다." },
+  ], warning: "시간/조건 부사절에서는 미래 대신 현재시제! (when/if + 현재)", quiz: { sentence: "He (works / has worked) for this firm since 2015.", answer: "has worked", explanation: "since + 과거시점 → 현재완료(have/has + p.p.)" } },
+  { id: "G08", day: 7, category: "태", title: "능동태 vs 수동태", rule: "주어가 행위의 주체면 능동, 대상이면 수동(be+p.p.)", items: [
+    { type: "수동태", example: "The report is prepared every month.", kr: "보고서는 매달 작성된다." },
+    { type: "조동사 수동", example: "All forms must be submitted by Friday.", kr: "모든 양식은 금요일까지 제출되어야 한다." },
+    { type: "능동태", example: "The CEO presented the results.", kr: "CEO가 결과를 발표했다." },
+  ], warning: "목적어가 있으면 능동, 없으면 수동일 가능성이 높다", quiz: { sentence: "The equipment should (inspect / be inspected) regularly.", answer: "be inspected", explanation: "주어(equipment)가 점검받는 대상 → 수동 should be inspected" } },
+  { id: "G09", day: 8, category: "준동사", title: "to부정사 vs 동명사", rule: "동사마다 취하는 목적어 형태가 정해져 있다", items: [
+    { type: "to부정사 목적어", example: "We decided to open a new office.", kr: "우리는 새 사무실을 열기로 결정했다." },
+    { type: "동명사 목적어", example: "She suggested postponing the meeting.", kr: "그녀는 회의를 미루자고 제안했다." },
+    { type: "전치사 + 동명사", example: "We look forward to working with you.", kr: "함께 일하게 되기를 고대합니다." },
+  ], warning: "to부정사: want/decide/plan/agree/expect / 동명사: suggest/avoid/finish/consider/enjoy", quiz: { sentence: "The staff avoided (to mention / mentioning) the issue.", answer: "mentioning", explanation: "avoid는 동명사를 목적어로 취함" } },
+  { id: "G10", day: 9, category: "준동사", title: "분사", rule: "명사를 수식: 능동·진행은 현재분사, 수동·완료는 과거분사", items: [
+    { type: "현재분사(능동)", example: "the increasing demand", kr: "증가하는 수요" },
+    { type: "과거분사(수동)", example: "the documents reviewed by the manager", kr: "관리자가 검토한 서류" },
+    { type: "분사구문", example: "Founded in 1990, the firm has grown.", kr: "1990년에 설립되어 그 회사는 성장했다." },
+  ], warning: "수식받는 명사와의 관계: 행하면 -ing, 당하면 p.p.", quiz: { sentence: "The package (delivering / delivered) this morning was urgent.", answer: "delivered", explanation: "package는 배달되는 대상(수동) → 과거분사 delivered" } },
+  { id: "G11", day: 10, category: "전치사", title: "전치사", rule: "시간·장소·이유 등 의미에 맞는 전치사를 쓴다", items: [
+    { type: "시점 at/on/in", example: "The meeting starts at 3 p.m. on Monday.", kr: "회의는 월요일 오후 3시에 시작한다." },
+    { type: "기간 for/during", example: "The store is closed during the holidays.", kr: "그 가게는 휴가 기간 동안 닫는다." },
+    { type: "기한 by/until", example: "Submit it by Friday.", kr: "금요일까지 제출하세요." },
+  ], warning: "by(완료 기한) vs until(계속) / during+명사 vs while+절", quiz: { sentence: "Please complete the form (by / until) noon.", answer: "by", explanation: "완료 시점(기한) → by. 계속의 의미면 until" } },
+  { id: "G12", day: 11, category: "접속사", title: "접속사 vs 전치사", rule: "뒤에 '절'이면 접속사, '명사구'면 전치사", items: [
+    { type: "접속사 + 절", example: "Although sales declined, profits were stable.", kr: "매출이 감소했지만 이익은 안정적이었다." },
+    { type: "전치사 + 명사구", example: "Despite the heavy rain, the event went on.", kr: "폭우에도 불구하고 행사는 진행됐다." },
+    { type: "이유 because/due to", example: "It was canceled due to the weather.", kr: "날씨 때문에 취소되었다." },
+  ], warning: "although/because(접속사+절) ↔ despite/due to(전치사+명사)", quiz: { sentence: "(Although / Despite) the heavy rain, the event continued.", answer: "Despite", explanation: "뒤에 명사구(the heavy rain) → 전치사 Despite" } },
+  { id: "G13", day: 12, category: "관계사", title: "관계대명사·관계부사", rule: "선행사와 격에 맞는 관계사를 쓴다", items: [
+    { type: "주격 who/which", example: "The employee who received the award is here.", kr: "상을 받은 직원이 여기 있다." },
+    { type: "소유격 whose", example: "The manager whose team won gave a speech.", kr: "팀이 우승한 관리자가 연설했다." },
+    { type: "관계부사 where/when", example: "the building where the event is held", kr: "행사가 열리는 건물" },
+  ], warning: "뒤 문장이 불완전(주어/목적어 없음)→관계대명사 / 완전→관계부사", quiz: { sentence: "The report (which / where) was submitted contained errors.", answer: "which", explanation: "사물 선행사 + 주격 → which" } },
+  { id: "G14", day: 13, category: "비교", title: "비교급·최상급", rule: "than이면 비교급, the+최상급+in/of", items: [
+    { type: "비교급 + than", example: "This model is more efficient than the old one.", kr: "이 모델은 예전 것보다 더 효율적이다." },
+    { type: "the 최상급", example: "It is the most expensive hotel in the city.", kr: "그곳은 도시에서 가장 비싼 호텔이다." },
+    { type: "배수 + 비교급", example: "three times faster than before", kr: "이전보다 세 배 빠른" },
+  ], warning: "as ~ as(원급) / 비교급 강조는 much·far·even (very X)", quiz: { sentence: "Our new product is (more / most) durable than the previous one.", answer: "more", explanation: "than이 있으므로 비교급 more durable" } },
+  { id: "G15", day: 14, category: "가정법", title: "가정법", rule: "현재 반대=과거시제, 과거 반대=had p.p.", items: [
+    { type: "가정법 과거", example: "If I had time, I would help you.", kr: "시간이 있다면 도와줄 텐데. (현재 사실 반대)" },
+    { type: "가정법 과거완료", example: "If we had left earlier, we would have arrived on time.", kr: "더 일찍 출발했다면 제시간에 도착했을 텐데." },
+    { type: "도치(If 생략)", example: "Had the budget been approved, we would have hired more.", kr: "예산이 승인됐다면 더 채용했을 텐데." },
+  ], warning: "가정법 과거의 be동사는 항상 were / Without~ = If it had not been for~", quiz: { sentence: "If I (was / were) you, I would accept the offer.", answer: "were", explanation: "가정법 과거의 be동사는 주어와 무관하게 were" } },
+];
+
 // ===================== 데이터: LC 파일 =====================
 // ※ Part 1(id 1~4)은 오늘의 학습/LC 모드에서 제외 — Part 2~4만 사용
 const LC_FILES_OLD_UNUSED = [
@@ -2007,6 +2089,90 @@ function DailyMode({ onHome, goWrong }) {
 }
 
 // ===================== 홈 =====================
+// ===================== 문법 카드 모드 =====================
+function GrammarMode({ onHome }) {
+  const cards = GRAMMAR_CARDS;
+  const [i, setI] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [pick, setPick] = useState(null);
+  const c = cards[i];
+
+  const go = (n) => { setI(n); setFlipped(false); setPick(null); };
+  const prev = () => go((i - 1 + cards.length) % cards.length);
+  const next = () => go((i + 1) % cards.length);
+
+  // 미니 퀴즈 보기 파싱: "(reduce / reduction)" → ["reduce","reduction"]
+  const m = c.quiz.sentence.match(/\(([^)]+)\)/);
+  const choices = m ? m[1].split("/").map((s) => s.trim()) : [];
+  const blanked = c.quiz.sentence.replace(/\([^)]+\)/, "_____");
+
+  return (
+    <div className="app">
+      <Header title="📚 문법 카드" onBack={onHome} meta={`${i + 1}/${cards.length}`} />
+      <div className="body">
+        <ProgressBar cur={i + 1} total={cards.length} />
+        <div className="gcard" onClick={() => !flipped && setFlipped(true)}
+          style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 16, padding: 20, minHeight: 180, boxShadow: "0 4px 14px rgba(0,0,0,0.06)", cursor: flipped ? "default" : "pointer" }}>
+          <span className="chip">Day {c.day} · {c.category}</span>
+          {!flipped ? (
+            <div style={{ textAlign: "center", padding: "24px 6px" }}>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>📌 {c.title}</div>
+              <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.4 }}>{c.rule}</div>
+              <div style={{ marginTop: 22, fontSize: 13, color: "var(--blue)", fontWeight: 700 }}>👆 탭하여 뒤집기</div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 800, margin: "6px 0 10px" }}>{c.title}</div>
+              <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 12 }}>{c.rule}</div>
+              {c.items.map((it, k) => (
+                <div key={k} style={{ marginBottom: 10, paddingLeft: 10, borderLeft: "3px solid var(--blue)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--blue)" }}>{it.type}</div>
+                  <div style={{ fontSize: 14.5 }}>{it.example}</div>
+                  <div style={{ fontSize: 13, color: "var(--muted)" }}>{it.kr}</div>
+                </div>
+              ))}
+              <div className="explain no" style={{ marginTop: 10 }}>⚠️ {c.warning}</div>
+
+              <div className="qbox" style={{ marginTop: 14 }}>
+                <span className="qtag">미니 퀴즈</span>
+                <div className="qtext" style={{ fontSize: 15 }}>{blanked}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                {choices.map((ch) => {
+                  const isAns = ch === c.quiz.answer;
+                  const picked = pick === ch;
+                  let bg = "#fff", col = "var(--ink)", bd = "var(--line)";
+                  if (pick != null && isAns) { bg = "var(--green)"; col = "#fff"; bd = "var(--green)"; }
+                  else if (picked && !isAns) { bg = "var(--red)"; col = "#fff"; bd = "var(--red)"; }
+                  return (
+                    <button key={ch} onClick={() => pick == null && setPick(ch)}
+                      style={{ flex: 1, padding: "12px", borderRadius: 10, border: `1px solid ${bd}`, background: bg, color: col, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+                      {ch}
+                    </button>
+                  );
+                })}
+              </div>
+              {pick != null && (
+                <div className={"explain " + (pick === c.quiz.answer ? "ok" : "no")} style={{ marginTop: 8 }}>
+                  {pick === c.quiz.answer ? "✅ 정답! " : "❌ 정답: "}<b>{c.quiz.answer}</b><br />{c.quiz.explanation}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="ctrls" style={{ marginTop: 14 }}>
+          <button className="btn ghost" style={{ flex: 1 }} onClick={prev}>← 이전</button>
+          {!flipped
+            ? <button className="btn blue" style={{ flex: 1 }} onClick={() => setFlipped(true)}>뒤집기</button>
+            : <button className="btn primary" style={{ flex: 1 }} onClick={next}>다음 →</button>}
+        </div>
+        <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+      </div>
+    </div>
+  );
+}
+
 function Home({ go }) {
   return (
     <div className="app">
@@ -2030,6 +2196,9 @@ function Home({ go }) {
           </button>
           <button className="home-btn" style={{ background: "linear-gradient(135deg,#f08c2e,#e07b1a)" }} onClick={() => go("lc")}>
             <div className="ic">🎧</div><div className="nm">LC 학습</div><div className="ds">{LC_FILES.length}개 파일</div>
+          </button>
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#8b5cf6,#6d28d9)" }} onClick={() => go("grammar")}>
+            <div className="ic">📚</div><div className="nm">문법 카드</div><div className="ds">{GRAMMAR_CARDS.length}장</div>
           </button>
           <button className="home-btn" style={{ background: "linear-gradient(135deg,#5b6b8c,#3f4d6b)" }} onClick={() => go("wrong")}>
             <div className="ic">📝</div><div className="nm">오답노트</div><div className="ds">단어·RC·LC</div>
@@ -2063,6 +2232,7 @@ function App() {
       {screen === "word" && <WordMode onHome={home} />}
       {screen === "rc" && <RcMode onHome={home} />}
       {screen === "lc" && <LcMode onHome={home} />}
+      {screen === "grammar" && <GrammarMode onHome={home} />}
       {screen === "wrong" && <WrongNote onHome={home} />}
       {toast && <div className={"toast " + (toast.isErr ? "err" : "")}>{toast.msg}</div>}
     </AppCtx.Provider>
