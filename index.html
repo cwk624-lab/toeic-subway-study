@@ -2053,6 +2053,7 @@ function DailyMode({ onHome, goWrong }) {
   }), []);
   const [phase, setPhase] = useState("word");
   const [stat, setStat] = useState({ word: null, rc: null, lc: null });
+  const [streak, setStreak] = useState(0);
 
   if (phase === "word") {
     return <WordRunner title="오늘의 학습 · 단어 (1/3)" words={data.words} onBack={onHome}
@@ -2064,7 +2065,7 @@ function DailyMode({ onHome, goWrong }) {
   }
   if (phase === "lc") {
     return <LcRunnerDaily files={data.lc} onBack={onHome}
-      onDone={(s) => { setStat((p) => ({ ...p, lc: s })); setPhase("summary"); }} />;
+      onDone={(s) => { setStat((p) => ({ ...p, lc: s })); setStreak(Streak.mark().count); setPhase("summary"); }} />;
   }
   // 요약
   return (
@@ -2074,6 +2075,7 @@ function DailyMode({ onHome, goWrong }) {
         <div className="result">
           <div className="em">🎉</div>
           <h2>오늘의 학습 완료!</h2>
+          {streak > 0 && <div style={{ fontSize: 18, fontWeight: 800, color: "var(--orange)", margin: "6px 0" }}>🔥 {streak}일 연속 학습!</div>}
           <p className="msg" style={{ color: "var(--muted)", marginBottom: 8 }}>매일 꾸준히 출퇴근길 한 세션씩 💪</p>
         </div>
         <div className="score-row">
@@ -2174,6 +2176,7 @@ function GrammarMode({ onHome }) {
 }
 
 function Home({ go }) {
+  const st = useMemo(() => Streak.info(), []);
   return (
     <div className="app">
       <div className="body">
@@ -2181,6 +2184,11 @@ function Home({ go }) {
           <div className="logo">🚇</div>
           <h2>토익 지하철 공부</h2>
           <p>출퇴근길에 단어·RC·LC를 가볍게!</p>
+          {st.count > 0 && (
+            <div style={{ marginTop: 8, fontWeight: 800, color: "var(--orange)" }}>
+              🔥 {st.count}일 연속{st.today ? " · 오늘 완료 ✅" : ""}
+            </div>
+          )}
         </div>
         <button className="btn" onClick={() => go("daily")}
           style={{ background: "linear-gradient(135deg,#1f2a44,#3b82f6)", color: "#fff", padding: "20px", fontSize: "18px", marginBottom: "16px", boxShadow: "0 8px 20px rgba(31,42,68,0.22)" }}>
@@ -2213,6 +2221,23 @@ function Home({ go }) {
     </div>
   );
 }
+
+// ===================== 학습 스트릭 (localStorage) =====================
+const Streak = {
+  _d(ms) { const d = new Date(ms); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); },
+  read() { try { return JSON.parse(localStorage.getItem("toeic_streak") || "{}"); } catch (e) { return {}; } },
+  mark() {
+    const today = this._d(Date.now());
+    const yest = this._d(Date.now() - 86400000);
+    const s = this.read();
+    if (s.last === today) return s;
+    const count = (s.last === yest ? (s.count || 0) : 0) + 1;
+    const ns = { last: today, count };
+    try { localStorage.setItem("toeic_streak", JSON.stringify(ns)); } catch (e) {}
+    return ns;
+  },
+  info() { const s = this.read(); return { count: s.count || 0, today: s.last === this._d(Date.now()) }; },
+};
 
 // ===================== App =====================
 function App() {
