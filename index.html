@@ -68,6 +68,17 @@ create policy "wlc_select" on wrong_lc for select using (true);
 create policy "wlc_insert" on wrong_lc for insert with check (true);
 create policy "wlc_update" on wrong_lc for update using (true) with check (true);
 create policy "wlc_delete" on wrong_lc for delete using (true);
+
+-- 오늘의 학습 완료일 (달력 동기화)  ★ 이 블록을 Supabase SQL Editor에서 실행하세요
+create table if not exists study_days (
+  id uuid primary key default gen_random_uuid(),
+  study_date text unique,           -- "YYYY-M-D" (예: 2026-6-29)
+  created_at timestamptz default now()
+);
+alter table study_days enable row level security;
+create policy "sd_select" on study_days for select using (true);
+create policy "sd_insert" on study_days for insert with check (true);
+create policy "sd_delete" on study_days for delete using (true);
 ============================================================
 -->
 
@@ -1554,6 +1565,21 @@ async function upsertWrong(table, matchCol, matchVal, insertRow) {
   }
 }
 
+// ===================== 학습 달력 Supabase 동기화 =====================
+// study_days 테이블(아래 상단 주석의 SQL로 생성). study_date는 "YYYY-M-D" 형식 문자열.
+async function pullStudyDays() {
+  if (!sbClient) return [];
+  const { data, error } = await sbClient.from("study_days").select("study_date");
+  if (error) throw error;
+  return (data || []).map((r) => r.study_date).filter(Boolean);
+}
+async function pushStudyDay(key) {
+  if (!sbClient || !key) return;
+  const { error } = await sbClient.from("study_days").insert({ study_date: key });
+  // 이미 있는 날짜(unique 충돌)는 정상으로 간주
+  if (error && !/duplicate|unique|already exists|23505/i.test(error.message || "")) throw error;
+}
+
 // ===================== 공통 UI =====================
 function Header({ title, onBack, meta }) {
   return (
@@ -2487,6 +2513,7 @@ const Streak = {
   mark() {
     const today = this._d(Date.now());
     try { const ds = this.days(); if (!ds.includes(today)) { ds.push(today); localStorage.setItem("toeic_done_days", JSON.stringify(ds)); } } catch (e) {}
+    try { if (sbClient) pushStudyDay(today).catch(() => {}); } catch (e) {} // Supabase 동기화(실패해도 무시)
     const yest = this._d(Date.now() - 86400000);
     const s = this.read();
     if (s.last === today) return s;
@@ -2500,14 +2527,36 @@ const Streak = {
 
 // ===================== 학습 달력 =====================
 function StudyCalendar({ onHome, go }) {
+  const { notify } = useContext(AppCtx);
   const now = new Date();
   const [view, setView] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const info = useMemo(() => Streak.info(), []);
-  const doneSet = useMemo(() => {
+  const localInit = () => {
     const arr = Streak.days();
     const last = Streak.read().last; // 이전 버전 호환: 마지막 완료일도 포함
     if (last && !arr.includes(last)) arr.push(last);
     return new Set(arr);
+  };
+  const [doneSet, setDoneSet] = useState(localInit);
+  const [synced, setSynced] = useState(false);
+
+  // Supabase 양방향 동기화: 원격 불러오기 + 로컬 전용 날짜 백필 + 로컬 캐시 갱신
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!sbClient) return;
+      try {
+        const remote = await pullStudyDays();
+        const local = Array.from(localInit());
+        const merged = new Set([...local, ...remote]);
+        for (const d of local) { if (!remote.includes(d)) { try { await pushStudyDay(d); } catch (e) {} } }
+        try { localStorage.setItem("toeic_done_days", JSON.stringify(Array.from(merged))); } catch (e) {}
+        if (alive) { setDoneSet(merged); setSynced(true); }
+      } catch (e) {
+        if (alive) notify("달력 동기화 실패: Supabase에 study_days 테이블이 있는지 확인하세요", true);
+      }
+    })();
+    return () => { alive = false; };
   }, []);
   const k = (y, m, d) => y + "-" + (m + 1) + "-" + d;
   const todayK = k(now.getFullYear(), now.getMonth(), now.getDate());
@@ -2575,6 +2624,7 @@ function StudyCalendar({ onHome, go }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14, fontSize: 12, color: "var(--muted)" }}>
           <span><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 4, background: "var(--green)", verticalAlign: "-1px", marginRight: 4 }} />학습 완료</span>
           <span><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 4, border: "2px solid var(--orange)", verticalAlign: "-1px", marginRight: 4 }} />오늘</span>
+          <span style={{ marginLeft: "auto", fontWeight: 700 }}>{!sbClient ? "📵 기기 저장" : synced ? "☁️ 동기화됨" : "⏳ 동기화 중…"}</span>
         </div>
 
         {info.today
