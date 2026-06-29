@@ -2305,11 +2305,11 @@ function DailyMode({ onHome, goWrong }) {
       onDone={(s) => { setStat((p) => ({ ...p, word: s })); setPhase("rc"); }} />;
   }
   if (phase === "rc") {
-    return <RcRunner title="오늘의 학습 · RC 문법 (2/4)" quizzes={data.rc} onBack={onHome}
+    return <RcRunner key="daily-rc" title="오늘의 학습 · RC 문법 (2/4)" quizzes={data.rc} onBack={onHome}
       onDone={(s) => { setStat((p) => ({ ...p, rc: s })); setPhase(hasHrc ? "hrc" : "lc"); }} />;
   }
   if (phase === "hrc") {
-    return <RcRunner title="오늘의 학습 · 실전 RC (3/4)" quizzes={data.hrc} onBack={onHome}
+    return <RcRunner key="daily-hrc" title="오늘의 학습 · 실전 RC (3/4)" quizzes={data.hrc} onBack={onHome}
       onDone={(s) => { setStat((p) => ({ ...p, hrc: s })); setPhase("lc"); }} />;
   }
   if (phase === "lc") {
