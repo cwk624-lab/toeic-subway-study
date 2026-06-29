@@ -2288,7 +2288,7 @@ function pickDailyRc() {
 }
 function pct(s) { if (!s) return 0; const t = s.right + s.wrong; return t ? Math.round((s.right / t) * 100) : 0; }
 
-function DailyMode({ onHome, goWrong }) {
+function DailyMode({ onHome, goWrong, goCalendar }) {
   const data = useMemo(() => ({
     words: shuffle(WORDS).slice(0, 20),
     rc: pickDailyRc(),
@@ -2334,6 +2334,7 @@ function DailyMode({ onHome, goWrong }) {
           <div className="sc"><div className="n" style={{ color: "var(--orange)" }}>{pct(stat.lc)}%</div><div className="l">LC ({stat.lc.right}/{stat.lc.right + stat.lc.wrong})</div></div>
         </div>
         <button className="btn primary" onClick={goWrong}>📝 오답노트 보러가기</button>
+        <button className="btn ghost mt8" onClick={goCalendar}>📅 학습 달력 보기</button>
         <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
       </div>
     </div>
@@ -2464,6 +2465,9 @@ function Home({ go }) {
           <button className="home-btn" style={{ background: "linear-gradient(135deg,#5b6b8c,#3f4d6b)" }} onClick={() => go("wrong")}>
             <div className="ic">📝</div><div className="nm">오답노트</div><div className="ds">단어·RC·LC</div>
           </button>
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#e2495f,#c8364a)" }} onClick={() => go("calendar")}>
+            <div className="ic">📅</div><div className="nm">학습 달력</div><div className="ds">오늘의 학습 기록</div>
+          </button>
         </div>
         {!sbClient && (
           <div className="explain no" style={{ marginTop: 16 }}>
@@ -2479,8 +2483,10 @@ function Home({ go }) {
 const Streak = {
   _d(ms) { const d = new Date(ms); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); },
   read() { try { return JSON.parse(localStorage.getItem("toeic_streak") || "{}"); } catch (e) { return {}; } },
+  days() { try { return JSON.parse(localStorage.getItem("toeic_done_days") || "[]"); } catch (e) { return []; } },
   mark() {
     const today = this._d(Date.now());
+    try { const ds = this.days(); if (!ds.includes(today)) { ds.push(today); localStorage.setItem("toeic_done_days", JSON.stringify(ds)); } } catch (e) {}
     const yest = this._d(Date.now() - 86400000);
     const s = this.read();
     if (s.last === today) return s;
@@ -2491,6 +2497,94 @@ const Streak = {
   },
   info() { const s = this.read(); return { count: s.count || 0, today: s.last === this._d(Date.now()) }; },
 };
+
+// ===================== 학습 달력 =====================
+function StudyCalendar({ onHome, go }) {
+  const now = new Date();
+  const [view, setView] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const info = useMemo(() => Streak.info(), []);
+  const doneSet = useMemo(() => {
+    const arr = Streak.days();
+    const last = Streak.read().last; // 이전 버전 호환: 마지막 완료일도 포함
+    if (last && !arr.includes(last)) arr.push(last);
+    return new Set(arr);
+  }, []);
+  const k = (y, m, d) => y + "-" + (m + 1) + "-" + d;
+  const todayK = k(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const firstDow = new Date(view.y, view.m, 1).getDay();
+  const dim = new Date(view.y, view.m + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= dim; d++) cells.push(d);
+
+  let monthDone = 0;
+  for (let d = 1; d <= dim; d++) if (doneSet.has(k(view.y, view.m, d))) monthDone++;
+
+  const move = (delta) => {
+    let m = view.m + delta, y = view.y;
+    if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
+    setView({ y, m });
+  };
+  const isFutureMonth = view.y > now.getFullYear() || (view.y === now.getFullYear() && view.m >= now.getMonth());
+  const dows = ["일", "월", "화", "수", "목", "금", "토"];
+
+  return (
+    <div className="app">
+      <Header title="📅 학습 달력" onBack={onHome} meta={`총 ${doneSet.size}일`} />
+      <div className="body">
+        <div className="score-row">
+          <div className="sc"><div className="n" style={{ color: "var(--orange)" }}>🔥 {info.count}</div><div className="l">연속일</div></div>
+          <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{monthDone}</div><div className="l">이번 달</div></div>
+          <div className="sc"><div className="n" style={{ color: "var(--blue)" }}>{doneSet.size}</div><div className="l">전체</div></div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "16px 0 10px" }}>
+          <button className="btn ghost" style={{ width: 46, fontSize: 20, fontWeight: 800 }} onClick={() => move(-1)}>‹</button>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>{view.y}년 {view.m + 1}월</div>
+          <button className="btn ghost" style={{ width: 46, fontSize: 20, fontWeight: 800, opacity: isFutureMonth ? 0.25 : 1 }} disabled={isFutureMonth} onClick={() => move(1)}>›</button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 6 }}>
+          {dows.map((w, idx) => (
+            <div key={w} style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: idx === 0 ? "var(--red)" : idx === 6 ? "var(--blue)" : "var(--muted)" }}>{w}</div>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
+          {cells.map((d, idx) => {
+            if (d == null) return <div key={"b" + idx} />;
+            const key = k(view.y, view.m, d);
+            const done = doneSet.has(key);
+            const isToday = key === todayK;
+            return (
+              <div key={key} style={{
+                height: 46, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                borderRadius: 12, fontSize: 14, fontWeight: 700,
+                background: done ? "var(--green)" : "#fff",
+                color: done ? "#fff" : "var(--txt)",
+                border: isToday ? "2px solid var(--orange)" : "1px solid var(--line)",
+              }}>
+                <span>{d}</span>
+                <span style={{ fontSize: 10, lineHeight: 1, marginTop: 2, height: 10 }}>{done ? "✓" : ""}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 14, fontSize: 12, color: "var(--muted)" }}>
+          <span><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 4, background: "var(--green)", verticalAlign: "-1px", marginRight: 4 }} />학습 완료</span>
+          <span><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 4, border: "2px solid var(--orange)", verticalAlign: "-1px", marginRight: 4 }} />오늘</span>
+        </div>
+
+        {info.today
+          ? <div className="explain ok" style={{ marginTop: 14 }}>오늘 학습 완료! 🎉 내일도 이어가요.</div>
+          : <button className="btn primary" style={{ marginTop: 14 }} onClick={() => go("daily")}>오늘 학습하러 가기 →</button>}
+        <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+      </div>
+    </div>
+  );
+}
 
 // ===================== App =====================
 function App() {
@@ -2506,13 +2600,14 @@ function App() {
   return (
     <AppCtx.Provider value={{ notify }}>
       {screen === "home" && <Home go={go} />}
-      {screen === "daily" && <DailyMode onHome={home} goWrong={() => setScreen("wrong")} />}
+      {screen === "daily" && <DailyMode onHome={home} goWrong={() => setScreen("wrong")} goCalendar={() => setScreen("calendar")} />}
       {screen === "word" && <WordMode onHome={home} />}
       {screen === "rc" && <RcMode onHome={home} />}
       {screen === "hrc" && <HackersRcMode onHome={home} />}
       {screen === "lc" && <LcMode onHome={home} />}
       {screen === "grammar" && <GrammarMode onHome={home} />}
       {screen === "wrong" && <WrongNote onHome={home} />}
+      {screen === "calendar" && <StudyCalendar onHome={home} go={go} />}
       {toast && <div className={"toast " + (toast.isErr ? "err" : "")}>{toast.msg}</div>}
     </AppCtx.Provider>
   );
