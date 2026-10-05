@@ -251,6 +251,45 @@ create policy "sd_delete" on study_days for delete using (true);
 
   .nav-btn-row { margin-top: 16px; }
   .mt8 { margin-top: 8px; }
+
+  /* 모의고사 타이머 */
+  .exam-timer { display: flex; align-items: center; justify-content: space-between; background: var(--navy); color: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 14px; }
+  .exam-timer .t-label { font-size: 13px; font-weight: 700; color: #b9c3da; }
+  .exam-timer .t-val { font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .exam-timer .t-val.red { color: var(--red); }
+  .exam-timer .t-prog { flex: 1; height: 6px; background: rgba(255,255,255,0.2); border-radius: 6px; margin: 0 14px; overflow: hidden; }
+  .exam-timer .t-prog > div { height: 100%; background: var(--blue); border-radius: 6px; transition: width 1s linear; }
+
+  /* 플립카드 오답노트 */
+  .flip-wrap { perspective: 800px; margin-bottom: 14px; cursor: pointer; }
+  .flip-inner { position: relative; width: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
+  .flip-inner.flipped { transform: rotateY(180deg); }
+  .flip-face { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 28px 20px; text-align: center; box-shadow: 0 6px 18px rgba(31,42,68,0.07); backface-visibility: hidden; -webkit-backface-visibility: hidden; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .flip-back { position: absolute; top: 0; left: 0; width: 100%; transform: rotateY(180deg); }
+  .flip-hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .flip-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .flip-nav .fn-btn { background: none; border: 2px solid var(--line); border-radius: 10px; padding: 8px 16px; font-weight: 800; cursor: pointer; color: var(--navy); font-family: inherit; }
+  .flip-nav .fn-count { font-size: 14px; font-weight: 700; color: var(--muted); }
+
+  /* PWA 알림 설정 */
+  .notif-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+  .notif-card .nc-title { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+  .notif-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .notif-toggle:last-child { border-bottom: none; }
+  .notif-toggle .nt-label { font-size: 14px; font-weight: 700; }
+  .notif-toggle .nt-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .toggle-sw { width: 48px; height: 26px; background: var(--line); border-radius: 13px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; border: none; }
+  .toggle-sw.on { background: var(--green); }
+  .toggle-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: left 0.2s; }
+  .toggle-sw.on::after { left: 25px; }
+
+  /* 모의고사 결과 기록 */
+  .exam-hist-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .exam-hist-row:last-child { border-bottom: none; }
+  .exam-hist-row .eh-date { font-size: 13px; color: var(--muted); }
+  .exam-hist-row .eh-score { font-size: 17px; font-weight: 900; }
+  .exam-hist-row .eh-score.good { color: var(--green); }
+  .exam-hist-row .eh-score.bad { color: var(--red); }
 </style>
 </head>
 <body>
@@ -2110,18 +2149,272 @@ function LcMode({ onHome }) {
   );
 }
 
-// ===================== 오답노트 =====================
+// ===================== 모의고사 모드 (RC Part 5, 해커스 문제 랜덤 30문) =====================
+const EXAM_TIME = 10 * 60; // 10분
+
+function MockExam({ onHome }) {
+  const { notify } = useContext(AppCtx);
+  const [phase, setPhase] = useState("ready"); // ready | exam | result
+  const [quizzes, setQuizzes] = useState([]);
+  const [idx, setIdx] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [picked, setPicked] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(EXAM_TIME);
+  const [histList, setHistList] = useState([]);
+  const [showHist, setShowHist] = useState(false);
+  const timerRef = useRef(null);
+
+  // 기록 로드
+  useEffect(() => {
+    if (sbClient) {
+      sbClient.from("mock_exam_results").select("*").order("created_at", { ascending: false }).limit(10)
+        .then(({ data }) => { if (data) setHistList(data); });
+    }
+  }, []);
+
+  const startExam = () => {
+    const all = shuffle([...HACKERS_RC]);
+    setQuizzes(all.slice(0, 30));
+    setIdx(0); setAnswers({}); setPicked(null);
+    setTimeLeft(EXAM_TIME);
+    setPhase("exam");
+  };
+
+  // 타이머
+  useEffect(() => {
+    if (phase !== "exam") return;
+    timerRef.current = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) { clearInterval(timerRef.current); finishExam(); return 0; }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [phase]);
+
+  const finishExam = () => {
+    clearInterval(timerRef.current);
+    setPhase("result");
+  };
+
+  const pick = (opt) => {
+    if (picked) return;
+    const ans = { opt, correct: opt === quizzes[idx].answer };
+    setPicked(ans);
+    setAnswers((prev) => ({ ...prev, [idx]: ans }));
+  };
+
+  const next = () => {
+    if (idx < quizzes.length - 1) { setIdx(idx + 1); setPicked(answers[idx + 1] || null); }
+    else finishExam();
+  };
+  const prev = () => {
+    if (idx > 0) { setIdx(idx - 1); setPicked(answers[idx - 1] || null); }
+  };
+
+  const correctCount = Object.values(answers).filter((a) => a.correct).length;
+  const totalAnswered = Object.keys(answers).length;
+  const score = quizzes.length > 0 ? Math.round((correctCount / quizzes.length) * 100) : 0;
+
+  // 결과 저장
+  useEffect(() => {
+    if (phase !== "result" || !sbClient || quizzes.length === 0) return;
+    const wrongIndices = quizzes.map((q, i) => answers[i] && !answers[i].correct ? i : null).filter((x) => x !== null);
+    sbClient.from("mock_exam_results").insert({
+      correct_count: correctCount,
+      total_count: quizzes.length,
+      time_spent_seconds: EXAM_TIME - timeLeft,
+      wrong_indices: wrongIndices,
+    }).then(({ error }) => {
+      if (!error) {
+        sbClient.from("mock_exam_results").select("*").order("created_at", { ascending: false }).limit(10)
+          .then(({ data }) => { if (data) setHistList(data); });
+      }
+    });
+    // 틀린 문제 → 오답 노트 저장
+    quizzes.forEach((q, i) => {
+      const a = answers[i];
+      if (a && !a.correct) {
+        upsertWrong("wrong_rc", "question", q.question, {
+          chapter: q.type || q.topic || "모의고사",
+          question: q.question,
+          correct_answer: q.answer,
+          user_answer: a.opt,
+        }).catch(() => {});
+      }
+    });
+  }, [phase]);
+
+  const mm = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+  const ss = String(timeLeft % 60).padStart(2, "0");
+  const pct = (timeLeft / EXAM_TIME) * 100;
+
+  if (phase === "ready") return (
+    <div className="app">
+      <Header title="📊 모의고사" onBack={onHome} />
+      <div className="body">
+        <div style={{ textAlign: "center", padding: "30px 10px 20px" }}>
+          <div style={{ fontSize: 56 }}>📊</div>
+          <h2 style={{ fontSize: 22, fontWeight: 900, color: "var(--navy)", marginTop: 10 }}>RC Part 5 미니 모의고사</h2>
+          <p style={{ color: "var(--muted)", marginTop: 8, fontSize: 14 }}>해커스 RC 전 문제에서 랜덤 30문<br/>제한시간 10분 · 틀린 문제 자동 오답노트 저장</p>
+        </div>
+        <div className="score-row" style={{ margin: "0 0 20px" }}>
+          <div className="sc"><div className="n">30</div><div className="l">문항</div></div>
+          <div className="sc"><div className="n">10</div><div className="l">분</div></div>
+          <div className="sc"><div className="n">{histList.length > 0 ? Math.round(histList[0].correct_count / histList[0].total_count * 100) + "%" : "-"}</div><div className="l">최근점수</div></div>
+        </div>
+        <button className="btn primary" style={{ fontSize: 18, padding: 18 }} onClick={startExam}>🚀 시작하기</button>
+        {histList.length > 0 && (
+          <div>
+            <button className="btn ghost mt8" onClick={() => setShowHist(!showHist)}>
+              {showHist ? "▲ 기록 닫기" : "📋 지난 기록 보기"}
+            </button>
+            {showHist && (
+              <div className="notif-card" style={{ marginTop: 10 }}>
+                <div className="nc-title">최근 모의고사 기록</div>
+                {histList.map((h) => (
+                  <div key={h.id} className="exam-hist-row">
+                    <div><div className="eh-date">{new Date(h.created_at).toLocaleDateString("ko-KR")}</div>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>소요: {Math.floor(h.time_spent_seconds / 60)}분 {h.time_spent_seconds % 60}초</div></div>
+                    <div className={"eh-score " + (h.correct_count / h.total_count >= 0.7 ? "good" : "bad")}>
+                      {h.correct_count}/{h.total_count}
+                      <span style={{ fontSize: 13, marginLeft: 6 }}>({Math.round(h.correct_count / h.total_count * 100)}%)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+      </div>
+    </div>
+  );
+
+  if (phase === "result") {
+    const wrongList = quizzes.filter((_, i) => answers[i] && !answers[i].correct);
+    return (
+      <div className="app">
+        <Header title="📊 모의고사 결과" onBack={onHome} />
+        <div className="body">
+          <div className="result">
+            <div className="em">{score >= 80 ? "🎉" : score >= 60 ? "📚" : "💪"}</div>
+            <h2>{score >= 80 ? "훌륭해요!" : score >= 60 ? "잘 했어요!" : "다시 도전해봐요!"}</h2>
+            <div className="score-row" style={{ marginTop: 20 }}>
+              <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{correctCount}</div><div className="l">정답</div></div>
+              <div className="sc"><div className="n" style={{ color: "var(--red)" }}>{quizzes.length - correctCount}</div><div className="l">오답</div></div>
+              <div className="sc"><div className="n" style={{ color: "var(--blue)" }}>{score}%</div><div className="l">정답률</div></div>
+            </div>
+            <div style={{ fontSize: 14, color: "var(--muted)", marginTop: 8 }}>
+              풀이: {totalAnswered}/{quizzes.length}문 · {Math.floor((EXAM_TIME - timeLeft) / 60)}분 {(EXAM_TIME - timeLeft) % 60}초 소요
+            </div>
+          </div>
+          {wrongList.length > 0 && (
+            <div>
+              <div className="group-title">❌ 오답 목록 ({wrongList.length}문)</div>
+              {wrongList.map((q, i) => (
+                <div key={i} className="qbox" style={{ marginBottom: 10 }}>
+                  <div className="qtag">{q.type || q.topic}</div>
+                  <div className="qtext" style={{ fontSize: 14 }}>{q.question}</div>
+                  <div className="wline" style={{ marginTop: 8 }}><span className="lab" style={{ color: "var(--muted)", fontWeight: 700 }}>정답: </span><b style={{ color: "var(--green)" }}>{q.answer}</b></div>
+                  <div className="explain no" style={{ marginTop: 8, fontSize: 13 }}>{q.explanation}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ height: 12 }} />
+          <button className="btn primary" onClick={startExam}>🔄 다시 풀기</button>
+          <button className="btn ghost mt8" onClick={() => { onHome(); /* 오답노트로 이동 힌트 */ notify("틀린 문제는 오답노트 → RC에 저장됐어요! 📝"); }}>홈으로 (오답 저장됨 ✅)</button>
+        </div>
+      </div>
+    );
+  }
+
+  // exam phase
+  const q = quizzes[idx];
+  return (
+    <div className="app">
+      <Header title={`📊 모의고사 ${idx + 1}/${quizzes.length}`} onBack={() => { if (window.confirm("시험을 중단하면 결과가 저장됩니다. 중단하시겠어요?")) finishExam(); }} />
+      <div className="body">
+        <div className="exam-timer">
+          <div><div className="t-label">남은 시간</div><div className={"t-val " + (timeLeft < 60 ? "red" : "")}>{mm}:{ss}</div></div>
+          <div className="t-prog"><div style={{ width: pct + "%" }} /></div>
+          <div style={{ textAlign: "right" }}><div className="t-label">문제</div><div style={{ fontSize: 20, fontWeight: 900, color: "#fff" }}>{idx + 1}<span style={{ fontSize: 14, opacity: 0.7 }}>/{quizzes.length}</span></div></div>
+        </div>
+
+        <div className="prog-label"><span>진행률</span><span>{Object.keys(answers).length}/{quizzes.length} 풀이</span></div>
+        <div className="prog"><div style={{ width: (Object.keys(answers).length / quizzes.length * 100) + "%" }} /></div>
+
+        <div className="qbox">
+          <div className="qtag">{q.type || q.topic} · {q.part}</div>
+          <div className="qtext">{q.question}</div>
+        </div>
+        <div className="opts">
+          {q.options.map((opt, oi) => {
+            let cls = "opt";
+            if (picked) {
+              if (opt === q.answer) cls += " correct";
+              else if (opt === picked.opt) cls += " wrong";
+            }
+            return (
+              <button key={oi} className={cls} disabled={!!picked} onClick={() => pick(opt)}>
+                <span className="ob">{["A","B","C","D"][oi]}</span>{opt}
+              </button>
+            );
+          })}
+        </div>
+        {picked && (
+          <div className={"explain " + (picked.correct ? "ok" : "no")} style={{ marginTop: 12 }}>
+            <div className="feed-icon">{picked.correct ? "⭕" : "❌"}</div>
+            <div>{q.explanation}</div>
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="btn ghost" style={{ flex: 1 }} disabled={idx === 0} onClick={prev}>◀ 이전</button>
+          <button className="btn primary" style={{ flex: 2 }} onClick={next}>
+            {idx === quizzes.length - 1 ? "채점 완료 🏁" : (picked ? "다음 ▶" : "건너뛰기")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===================== 오답노트 (플립카드 + 섀도잉) =====================
+function FlipCard({ front, back, onDelete }) {
+  const [flipped, setFlipped] = useState(false);
+  return (
+    <div>
+      <div className="flip-wrap" onClick={() => setFlipped(!flipped)}>
+        <div className={"flip-inner " + (flipped ? "flipped" : "")}>
+          <div className="flip-face">
+            {front}
+            <div className="flip-hint">탭하면 정답 보기 👆</div>
+          </div>
+          <div className="flip-face flip-back">
+            {back}
+            <div className="flip-hint">탭하면 문제로 돌아가기 👆</div>
+          </div>
+        </div>
+      </div>
+      <button className="btn ghost" style={{ padding: "8px", fontSize: 13, marginBottom: 14 }} onClick={onDelete}>🗑 이 항목 삭제</button>
+    </div>
+  );
+}
+
 function WrongNote({ onHome }) {
   const { notify } = useContext(AppCtx);
   const [tab, setTab] = useState("word");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [viewMode, setViewMode] = useState("flip"); // flip | list
+  const [flipIdx, setFlipIdx] = useState(0);
 
   const tableOf = (t) => t === "word" ? "wrong_words" : t === "rc" ? "wrong_rc" : "wrong_lc";
 
   const load = async (t) => {
-    setConfirmAll(false);
+    setConfirmAll(false); setFlipIdx(0);
     if (!sbClient) { notify("Supabase 미연결 상태예요", true); setRows([]); return; }
     setLoading(true);
     try {
@@ -2141,7 +2434,9 @@ function WrongNote({ onHome }) {
     try {
       const { error } = await sbClient.from(tableOf(tab)).delete().eq("id", id);
       if (error) throw error;
-      setRows((r) => r.filter((x) => x.id !== id));
+      const newRows = rows.filter((x) => x.id !== id);
+      setRows(newRows);
+      if (flipIdx >= newRows.length && newRows.length > 0) setFlipIdx(newRows.length - 1);
     } catch (e) { notify("삭제 실패: " + (e.message || e), true); }
   };
   const delAll = async () => {
@@ -2151,6 +2446,43 @@ function WrongNote({ onHome }) {
       setRows([]); setConfirmAll(false);
       notify("전체 삭제 완료");
     } catch (e) { notify("전체 삭제 실패: " + (e.message || e), true); }
+  };
+
+  const renderFlipFront = (r) => {
+    if (tab === "word") return <div><div className="word">{r.word}</div><div className="ex">{r.example}</div><span className="badge" style={{ marginTop: 12 }}>{r.wrong_count}회 틀림</span></div>;
+    if (tab === "rc") return <div><span className="chip">{r.chapter}</span><div className="qtext" style={{ marginTop: 8, fontSize: 15 }}>{r.question}</div><span className="badge" style={{ marginTop: 12 }}>{r.wrong_count}회 틀림</span></div>;
+    return <div><span className="chip">{r.part} · {r.file_name}</span><div className="qtext" style={{ marginTop: 8, fontSize: 15 }}>{r.question}</div><span className="badge" style={{ marginTop: 12 }}>{r.wrong_count}회 틀림</span></div>;
+  };
+
+  const renderFlipBack = (r) => {
+    if (tab === "word") return (
+      <div>
+        <div className="word" style={{ fontSize: 22 }}>{r.word}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "var(--green)", marginTop: 8 }}>{r.meaning}</div>
+        <div className="ex" style={{ marginTop: 10 }}>{r.example}</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>마지막 오답: {fmtDate(r.last_wrong_at)}</div>
+      </div>
+    );
+    if (tab === "rc") return (
+      <div>
+        <div className="qtext" style={{ fontSize: 14, marginBottom: 10, color: "var(--muted)" }}>{r.question}</div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: "var(--green)" }}>✅ {r.correct_answer}</div>
+        <div style={{ fontSize: 14, color: "var(--red)", marginTop: 6 }}>❌ 내 답: {r.user_answer}</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>{fmtDate(r.last_wrong_at)}</div>
+      </div>
+    );
+    return (
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: "var(--green)" }}>✅ {r.correct_answer}</div>
+        <div style={{ fontSize: 14, color: "var(--red)", marginTop: 6 }}>❌ 내 답: {r.user_answer}</div>
+        {r.script && <div className="ex" style={{ marginTop: 10, textAlign: "left", fontSize: 12 }}>📜 {r.script.substring(0, 120)}{r.script.length > 120 ? "…" : ""}</div>}
+        {r.file_name && (
+          <div style={{ marginTop: 12, width: "100%" }}>
+            <AudioPlayer file={{ fileName: r.file_name, title: "섀도잉", part: r.part }} />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -2165,14 +2497,35 @@ function WrongNote({ onHome }) {
 
         <div className="toolbar">
           <button className="btn ghost" onClick={() => load(tab)}>🔄 새로고침</button>
+          <button className="btn ghost" onClick={() => setViewMode(viewMode === "flip" ? "list" : "flip")}>
+            {viewMode === "flip" ? "📋 목록" : "🃏 플립"}
+          </button>
           {rows.length > 0 && (confirmAll
-            ? <button className="btn" style={{ background: "var(--red)", color: "#fff" }} onClick={delAll}>정말 전체삭제</button>
-            : <button className="btn ghost" onClick={() => setConfirmAll(true)}>🗑 전체삭제</button>)}
+            ? <button className="btn" style={{ background: "var(--red)", color: "#fff", flex: 1 }} onClick={delAll}>정말 전체삭제</button>
+            : <button className="btn ghost" onClick={() => setConfirmAll(true)}>🗑 전체</button>)}
         </div>
 
         {loading ? <div className="spinner">불러오는 중…</div>
-          : rows.length === 0 ? <div className="empty"><div className="e">🗒️</div>오답 기록이 없어요</div>
-          : (
+          : rows.length === 0 ? <div className="empty"><div className="e">🗒️</div>오답 기록이 없어요<br/><span style={{ fontSize: 12, marginTop: 8, display: "block" }}>학습하면서 틀린 문제가 여기 쌓여요</span></div>
+          : viewMode === "flip" ? (
+            <div>
+              <div className="flip-nav">
+                <button className="fn-btn" disabled={flipIdx === 0} onClick={() => setFlipIdx(flipIdx - 1)}>◀</button>
+                <span className="fn-count">{flipIdx + 1} / {rows.length}</span>
+                <button className="fn-btn" disabled={flipIdx === rows.length - 1} onClick={() => setFlipIdx(flipIdx + 1)}>▶</button>
+              </div>
+              <FlipCard
+                key={rows[flipIdx].id}
+                front={renderFlipFront(rows[flipIdx])}
+                back={renderFlipBack(rows[flipIdx])}
+                onDelete={() => delOne(rows[flipIdx].id)}
+              />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn ghost" style={{ flex: 1 }} disabled={flipIdx === 0} onClick={() => setFlipIdx(0)}>처음으로</button>
+                <button className="btn primary" style={{ flex: 1 }} disabled={flipIdx === rows.length - 1} onClick={() => setFlipIdx(flipIdx + 1)}>다음 ▶</button>
+              </div>
+            </div>
+          ) : (
             <div>
               {rows.map((r) => (
                 <div key={r.id} className="wcard">
@@ -2189,10 +2542,7 @@ function WrongNote({ onHome }) {
                   {tab === "rc" && (
                     <div>
                       <span className="chip">{r.chapter}</span>
-                      <div className="wtop">
-                        <div className="wq">{r.question}</div>
-                        <span className="badge">{r.wrong_count}회</span>
-                      </div>
+                      <div className="wtop"><div className="wq">{r.question}</div><span className="badge">{r.wrong_count}회</span></div>
                       <div className="wline"><span className="lab">정답: </span><b>{r.correct_answer}</b></div>
                       <div className="wline"><span className="lab">내 답: </span>{r.user_answer}</div>
                       <div className="wline"><span className="lab">마지막: </span>{fmtDate(r.last_wrong_at)}</div>
@@ -2201,10 +2551,7 @@ function WrongNote({ onHome }) {
                   {tab === "lc" && (
                     <div>
                       <span className="chip">{r.part} · {r.file_name}</span>
-                      <div className="wtop">
-                        <div className="wq">{r.question}</div>
-                        <span className="badge">{r.wrong_count}회</span>
-                      </div>
+                      <div className="wtop"><div className="wq">{r.question}</div><span className="badge">{r.wrong_count}회</span></div>
                       <div className="wline"><span className="lab">정답: </span><b>{r.correct_answer}</b></div>
                       <div className="wline"><span className="lab">내 답: </span>{r.user_answer}</div>
                       <div className="wline"><span className="lab">마지막: </span>{fmtDate(r.last_wrong_at)}</div>
@@ -2452,6 +2799,136 @@ function GrammarMode({ onHome }) {
   );
 }
 
+// ===================== 알림 설정 =====================
+const NOTIF_TIMES = [
+  { key: "morning", label: "출근 알림", time: "07:30", desc: "출근길 학습 시작 알림", icon: "🌅" },
+  { key: "evening", label: "퇴근 알림", time: "18:30", desc: "퇴근길 학습 시작 알림", icon: "🌆" },
+  { key: "night",   label: "저녁 복습", time: "21:00", desc: "오늘의 오답 복습 알림",  icon: "🌙" },
+];
+
+function NotifSettings({ onHome }) {
+  const { notify } = useContext(AppCtx);
+  const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+  const [enabled, setEnabled] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("toeic_notif") || "{}"); } catch(e) { return {}; }
+  });
+  const [swReg, setSwReg] = useState(null);
+
+  React.useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then(reg => setSwReg(reg)).catch(() => {});
+    }
+  }, []);
+
+  const save = (obj) => {
+    try { localStorage.setItem("toeic_notif", JSON.stringify(obj)); } catch(e) {}
+    setEnabled(obj);
+  };
+
+  const requestPerm = async () => {
+    if (typeof Notification === "undefined") { notify("이 브라우저는 알림을 지원하지 않습니다.", true); return; }
+    const res = await Notification.requestPermission();
+    setPerm(res);
+    if (res === "granted") notify("알림 허용됨! 이제 아래에서 알림을 켜보세요 ✅");
+    else notify("알림이 차단되었습니다. 브라우저 설정에서 허용해 주세요.", true);
+  };
+
+  const toggle = async (key) => {
+    if (perm !== "granted") { await requestPerm(); return; }
+    const next = { ...enabled, [key]: !enabled[key] };
+    save(next);
+    if (next[key]) {
+      // 즉시 테스트 알림
+      try {
+        const t = NOTIF_TIMES.find(t => t.key === key);
+        if (swReg) {
+          swReg.showNotification("토익 지하철 공부 " + t.icon, {
+            body: t.label + " (" + t.time + ") 알림이 설정되었습니다!",
+            icon: "/icon-192.png",
+            badge: "/icon-192.png",
+          });
+        } else {
+          new Notification("토익 지하철 공부 " + t.icon, { body: t.label + " 알림 설정 완료!" });
+        }
+        notify(t.label + " 알림 켜짐 ✅");
+      } catch(e) { notify("알림 전송 실패: " + e.message, true); }
+    } else {
+      notify(NOTIF_TIMES.find(t => t.key === key).label + " 알림 꺼짐");
+    }
+  };
+
+  const testNotif = () => {
+    if (perm !== "granted") { requestPerm(); return; }
+    try {
+      if (swReg) {
+        swReg.showNotification("🚇 토익 지하철 공부", { body: "테스트 알림입니다! 지금 공부할 시간이에요 📚", icon: "/icon-192.png" });
+      } else {
+        new Notification("🚇 토익 지하철 공부", { body: "테스트 알림입니다! 지금 공부할 시간이에요 📚" });
+      }
+      notify("테스트 알림 전송! 알림 패널을 확인하세요 🔔");
+    } catch(e) { notify("알림 오류: " + e.message, true); }
+  };
+
+  return (
+    <div className="app">
+      <Header title="🔔 알림 설정" onBack={onHome} />
+      <div className="body">
+
+        {/* 알림 권한 상태 */}
+        <div className="notif-card" style={{ marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>알림 권한</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                {perm === "granted" ? "✅ 허용됨" : perm === "denied" ? "🚫 차단됨 (브라우저 설정 변경 필요)" : perm === "unsupported" ? "❌ 미지원 브라우저" : "⚪ 아직 허용하지 않음"}
+              </div>
+            </div>
+            {perm !== "granted" && perm !== "unsupported" && (
+              <button className="btn primary" style={{ padding: "8px 14px", fontSize: 13 }} onClick={requestPerm}>허용하기</button>
+            )}
+            {perm === "granted" && (
+              <button className="btn ghost" style={{ padding: "8px 14px", fontSize: 13 }} onClick={testNotif}>테스트</button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+          ℹ️ 알림을 켜면 매일 해당 시간에 공부 리마인드를 받습니다. (앱이 백그라운드에 있어도 동작)
+        </div>
+
+        {/* 알림 시간별 토글 */}
+        {NOTIF_TIMES.map(({ key, label, time, desc, icon }) => (
+          <div key={key} className="notif-card">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ fontSize: 28 }}>{icon}</div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>{label}</div>
+                  <div style={{ fontSize: 13, color: "var(--blue)", fontWeight: 700 }}>{time}</div>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>{desc}</div>
+                </div>
+              </div>
+              <div className={"toggle-sw " + (enabled[key] ? "on" : "")} onClick={() => toggle(key)} />
+            </div>
+          </div>
+        ))}
+
+        <div className="notif-card" style={{ marginTop: 8, background: "var(--bg)" }}>
+          <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
+            💡 <b>알림이 안 온다면?</b><br />
+            • 브라우저 설정 → 알림 → 이 사이트 허용 확인<br />
+            • iOS Safari: 홈 화면에 추가 후 알림 허용<br />
+            • 앱을 완전히 종료하면 알림이 오지 않을 수 있습니다<br />
+            • 배터리 절약 모드 해제 권장
+          </div>
+        </div>
+
+        <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+      </div>
+    </div>
+  );
+}
+
 function Home({ go }) {
   const st = useMemo(() => Streak.info(), []);
   return (
@@ -2491,8 +2968,14 @@ function Home({ go }) {
           <button className="home-btn" style={{ background: "linear-gradient(135deg,#5b6b8c,#3f4d6b)" }} onClick={() => go("wrong")}>
             <div className="ic">📝</div><div className="nm">오답노트</div><div className="ds">단어·RC·LC</div>
           </button>
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#dc2626,#b91c1c)" }} onClick={() => go("exam")}>
+            <div className="ic">📊</div><div className="nm">모의고사</div><div className="ds">RC Part5 · 30문 · 10분</div>
+          </button>
           <button className="home-btn" style={{ background: "linear-gradient(135deg,#e2495f,#c8364a)" }} onClick={() => go("calendar")}>
             <div className="ic">📅</div><div className="nm">학습 달력</div><div className="ds">오늘의 학습 기록</div>
+          </button>
+          <button className="home-btn" style={{ background: "linear-gradient(135deg,#0f766e,#0d5f57)" }} onClick={() => go("notif")}>
+            <div className="ic">🔔</div><div className="nm">알림 설정</div><div className="ds">출퇴근·저녁 리마인드</div>
           </button>
         </div>
         {!sbClient && (
@@ -2657,6 +3140,8 @@ function App() {
       {screen === "lc" && <LcMode onHome={home} />}
       {screen === "grammar" && <GrammarMode onHome={home} />}
       {screen === "wrong" && <WrongNote onHome={home} />}
+      {screen === "exam" && <MockExam onHome={home} />}
+      {screen === "notif" && <NotifSettings onHome={home} />}
       {screen === "calendar" && <StudyCalendar onHome={home} go={go} />}
       {toast && <div className={"toast " + (toast.isErr ? "err" : "")}>{toast.msg}</div>}
     </AppCtx.Provider>
