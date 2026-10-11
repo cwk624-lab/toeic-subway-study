@@ -298,6 +298,7 @@ create policy "sd_delete" on study_days for delete using (true);
 <script src="mock1_core.js"></script>
 <script src="mock1_plan_a.js"></script>
 <script src="mock1_plan_b.js"></script>
+<script src="mock1_plan_c.js"></script>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
 
@@ -2955,7 +2956,7 @@ function Home({ go }) {
         <button className="btn" onClick={() => go("morning")}
           style={{ background: "linear-gradient(135deg,#f59e0b,#ea580c)", color: "#fff", padding: "18px", fontSize: "17px", marginBottom: "10px", boxShadow: "0 8px 20px rgba(234,88,12,0.22)" }}>
           🌅 아침 지하철 세트 (1회 모의고사 맞춤)
-          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.9, marginTop: 4 }}>10일 · 하루 12문항 · 음성 포함</div>
+          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.9, marginTop: 4 }}>10일 · 하루 20문항 · 음성 포함</div>
         </button>
         <button className="btn ghost" onClick={() => go("m1report")} style={{ marginBottom: "16px" }}>📋 1회 모의고사 리포트 · 오답노트 (585점)</button>
         <div className="home-grid">
@@ -3323,13 +3324,14 @@ function M1Report({ onHome, go }) {
 function buildSteps(day) {
   const steps = [];
   day.p5.forEach((q, i) => steps.push({ sec: "P5 문법·어휘", id: "p5-" + i, q, ctx: null }));
+  (day.p5x || []).forEach((q, i) => steps.push({ sec: "P5 문법·어휘", id: "p5x-" + i, q, ctx: null }));
   day.p6.qs.forEach((q, i) => steps.push({ sec: "P6 장문 빈칸", id: "p6-" + i, q, ctx: { passage: day.p6.t } }));
   day.p7.qs.forEach((q, i) => steps.push({ sec: "P7 독해", id: "p7-" + i, q, ctx: { passage: day.p7.t, title: day.p7.title } }));
-  day.p2.forEach((q, i) => {
+  day.p2.concat(day.p2x || []).forEach((q, i) => {
     const lines = [{ v: "m", t: q.q }, { pause: 900 }].concat(q.o.map((o, k) => [{ v: "f", t: ["A", "B", "C"][k] + "." }, { v: "f", t: o }, { pause: 700 }]).reduce((a, b) => a.concat(b), []));
     steps.push({ sec: "P2 질의응답", id: "p2-" + i, q, p2: true, audio: { lines, label: "Part 2 · " + (i + 1) + "번" } });
   });
-  day.lc.qs.forEach((q, i) => steps.push({ sec: day.lc.type.split(" ")[0] + " " + day.lc.type.split(" ").slice(1).join(" "), id: "lc-" + i, q, lc: day.lc, audio: { lines: day.lc.lines, label: day.lc.title, hint: "대화·담화를 먼저 읽고 보기 키워드를 확인하세요" } }));
+  day.lc.qs.concat(day.lcx ? [day.lcx] : []).forEach((q, i) => steps.push({ sec: day.lc.type.split(" ")[0] + " " + day.lc.type.split(" ").slice(1).join(" "), id: "lc-" + i, q, lc: day.lc, audio: { lines: day.lc.lines, label: day.lc.title, hint: "대화·담화를 먼저 읽고 보기 키워드를 확인하세요" } }));
   steps.forEach((x) => { x.key = "d" + day.day + "-" + x.id; });
   return steps;
 }
@@ -3504,7 +3506,7 @@ function MorningMode({ onHome, go }) {
     <div className="app">
       <Header title="🌅 아침 지하철 세트" onBack={onHome} meta={doneN + "/" + plan.length + "일"} />
       <div className="body">
-        <div className="explain" style={{ marginTop: 0 }}>1회 모의고사 오답 유형(한정사·부사·전치사·접속부사·어휘, P3·P4 세부, P7 목적·의도·추론)으로 만든 하루 12문항 · 약 10~12분 세트입니다. 먼저 앞선 날 틀린 문제를 누적 복습(해설 확인 → 재풀이)한 뒤, P5 4 → P6 2 → P7 2 → P2 2(음성) → P3/P4 2(음성)을 풉니다. 음성은 기기 TTS라 이어폰을 꽂아 두세요.</div>
+        <div className="explain" style={{ marginTop: 0 }}>1회 모의고사 오답 유형(한정사·부사·전치사·접속부사·어휘, P3·P4 세부, P7 목적·의도·추론)에 시험에 자주 나오는 빈출 유형(품사 자리·관계사·수동태·준동사·비교급·시제·P2 의문사)을 더해 만든 하루 20문항 · 약 15분 세트입니다. 먼저 앞선 날 틀린 문제를 누적 복습(해설 확인 → 재풀이)한 뒤, P5 8 → P6 2 → P7 2 → P2 5(음성) → P3/P4 3(음성)을 풉니다. 빈출 유형 문제는 유형명에 "빈출"이 붙어요. 음성은 기기 TTS라 이어폰을 꽂아 두세요.</div>
         <button className="btn primary" style={{ margin: "14px 0" }} onClick={() => startDay(nextDay)}>▶ 오늘은 Day {nextDay} 시작{pendingWrong > 0 ? " (복습 " + pendingWrong + "문항 먼저)" : ""}</button>
         <div className="list">
           {plan.map((p) => (
