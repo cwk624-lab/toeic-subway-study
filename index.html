@@ -3330,12 +3330,24 @@ function buildSteps(day) {
     steps.push({ sec: "P2 질의응답", id: "p2-" + i, q, p2: true, audio: { lines, label: "Part 2 · " + (i + 1) + "번" } });
   });
   day.lc.qs.forEach((q, i) => steps.push({ sec: day.lc.type.split(" ")[0] + " " + day.lc.type.split(" ").slice(1).join(" "), id: "lc-" + i, q, lc: day.lc, audio: { lines: day.lc.lines, label: day.lc.title, hint: "대화·담화를 먼저 읽고 보기 키워드를 확인하세요" } }));
+  steps.forEach((x) => { x.key = "d" + day.day + "-" + x.id; });
   return steps;
 }
 
-function MorningRunner({ day, onBack, onDone }) {
+// 누적 오답 복습: 앞선 날(day 미만)에서 틀린 문항을 다시 모은다
+function collectReview(plan, upto) {
+  const wrong = M1Store.get("toeic_m1_wrong", []);
+  const out = [];
+  plan.forEach((d) => {
+    if (d.day >= upto) return;
+    buildSteps(d).forEach((st) => { if (wrong.includes(st.key)) out.push(st); });
+  });
+  return out;
+}
+
+function MorningRunner({ day, onBack, onDone, stepsOverride, review }) {
   const { notify } = useContext(AppCtx);
-  const steps = useMemo(() => buildSteps(day), [day]);
+  const steps = useMemo(() => stepsOverride || buildSteps(day), [day]);
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState(null);
   const [res, setRes] = useState([]);
@@ -3346,10 +3358,13 @@ function MorningRunner({ day, onBack, onDone }) {
     if (picked != null) return;
     setPicked(k);
     const ok = k === st.q.a;
-    setRes((r) => r.concat([{ id: "d" + day.day + "-" + st.id, sec: st.sec, ok }]));
-    if (!ok) {
+    setRes((r) => r.concat([{ id: st.key, sec: st.sec, ok }]));
+    if (review && ok) {
+      M1Store.set("toeic_m1_wrong", M1Store.get("toeic_m1_wrong", []).filter((x) => x !== st.key));
+    }
+    if (!ok && !review) {
       const w = M1Store.get("toeic_m1_wrong", []);
-      const key = "d" + day.day + "-" + st.id;
+      const key = st.key;
       if (!w.includes(key)) { w.push(key); M1Store.set("toeic_m1_wrong", w); }
       try {
         if (sbClient) {
@@ -3362,11 +3377,13 @@ function MorningRunner({ day, onBack, onDone }) {
   const next = () => {
     ttsStop();
     if (i + 1 >= steps.length) {
-      const prog = M1Store.get("toeic_m1_prog", {});
       const right = res.filter((r) => r.ok).length;
-      prog[day.day] = { right, total: steps.length, at: Date.now() };
-      M1Store.set("toeic_m1_prog", prog);
-      Streak.mark();
+      if (!review) {
+        const prog = M1Store.get("toeic_m1_prog", {});
+        prog[day.day] = { right, total: steps.length, at: Date.now() };
+        M1Store.set("toeic_m1_prog", prog);
+        Streak.mark();
+      }
       setFin(true);
       return;
     }
@@ -3378,14 +3395,14 @@ function MorningRunner({ day, onBack, onDone }) {
     const secs = {};
     res.forEach((r) => { secs[r.sec] = secs[r.sec] || { r: 0, t: 0 }; secs[r.sec].t++; if (r.ok) secs[r.sec].r++; });
     return (
-      <div className="app"><Header title={"Day " + day.day + " 완료"} onBack={onDone} />
+      <div className="app"><Header title={review ? "복습 완료" : "Day " + day.day + " 완료"} onBack={onDone} />
         <div className="body"><div className="result">
           <div className="em">{right >= steps.length * 0.8 ? "🎉" : "💪"}</div>
           <h2>{right} / {steps.length} 정답</h2>
-          <div className="explain ok">오늘 학습 완료로 기록했어요 (스트릭 반영).</div>
+          <div className="explain ok">{review ? "맞춘 문제는 오답 목록에서 빠지고, 틀린 문제는 다음 복습에 다시 나옵니다." : "오늘 학습 완료로 기록했어요 (스트릭 반영)."}</div>
         </div>
         {Object.keys(secs).map((s) => <div key={s} className="notif-toggle"><div className="nt-label">{s}</div><div style={{ fontWeight: 800 }}>{secs[s].r}/{secs[s].t}</div></div>)}
-        <button className="btn primary" style={{ marginTop: 16 }} onClick={onDone}>세트 목록으로</button></div></div>
+        <button className="btn primary" style={{ marginTop: 16 }} onClick={onDone}>{review ? "다음 단계로 →" : "세트 목록으로"}</button></div></div>
     );
   }
   const q = st.q;
@@ -3393,7 +3410,7 @@ function MorningRunner({ day, onBack, onDone }) {
   const letters = ["A", "B", "C", "D"];
   return (
     <div className="app">
-      <Header title={"Day " + day.day + " · " + day.title} onBack={() => { ttsStop(); onBack(); }} meta={(i + 1) + "/" + steps.length} />
+      <Header title={review ? "🔁 누적 오답 복습" : "Day " + day.day + " · " + day.title} onBack={() => { ttsStop(); onBack(); }} meta={(i + 1) + "/" + steps.length} />
       <div className="body" key={i}>
         <ProgressBar cur={i + 1} total={steps.length} />
         <span className="qtag" style={{ display: "inline-block", fontSize: 11, fontWeight: 800, color: "var(--blue)", background: "#eaf1ff", padding: "3px 10px", borderRadius: 999, marginBottom: 10 }}>{st.sec} · {q.type}</span>
@@ -3442,23 +3459,56 @@ function MorningMode({ onHome, go }) {
   const m = M1();
   const [prog, setProg] = useState(() => M1Store.get("toeic_m1_prog", {}));
   const [sel, setSel] = useState(null);
+  const [rv, setRv] = useState(null); // { day, items, phase: "cards" | "quiz" }
   if (!m || !m.plan) return <div className="app"><Header title="아침 지하철" onBack={onHome} /><div className="body"><div className="empty">데이터를 불러오지 못했어요.</div></div></div>;
   const plan = m.plan.slice().sort((a, b) => a.day - b.day);
+  const startDay = (n) => {
+    const items = collectReview(plan, n);
+    if (items.length) setRv({ day: n, items, phase: "cards" });
+    else setSel(n);
+  };
+  if (rv && rv.phase === "cards") {
+    return (
+      <div className="app">
+        <Header title="🔁 어제까지 틀린 문제 복습" onBack={() => setRv(null)} meta={rv.items.length + "문항"} />
+        <div className="body">
+          <div className="explain" style={{ marginTop: 0 }}>앞선 날 틀린 문제입니다. 정답과 해설을 먼저 읽고, 아래 버튼으로 다시 풀어 보세요. 맞히면 오답 목록에서 빠집니다.</div>
+          {rv.items.map((st) => (
+            <div key={st.key} className="wcard" style={{ marginTop: 10 }}>
+              <span className="chip">{st.key.split("-")[0].replace("d", "Day ")} · {st.sec} · {st.q.type}</span>
+              {st.ctx && st.ctx.passage && <div className="wex" style={{ whiteSpace: "pre-wrap" }}>{st.ctx.passage}</div>}
+              {st.lc && <div className="wex" style={{ whiteSpace: "pre-wrap" }}>{st.lc.lines.map((l) => (l.v === "f" ? "W: " : "M: ") + l.t).join("\n")}</div>}
+              <div className="wq">{st.q.q}</div>
+              <div className="wline"><span className="lab">정답 </span><b>({NUM[st.q.a]}) {st.q.o[st.q.a]}</b></div>
+              <div className="wline"><span className="lab">해설 </span>{st.q.why}</div>
+            </div>
+          ))}
+          <button className="btn primary" style={{ marginTop: 14 }} onClick={() => setRv(Object.assign({}, rv, { phase: "quiz" }))}>복습 문제 다시 풀기 →</button>
+          <button className="btn ghost mt8" onClick={() => { const n = rv.day; setRv(null); setSel(n); }}>복습 건너뛰고 Day {rv.day} 바로 시작</button>
+        </div>
+      </div>
+    );
+  }
+  if (rv && rv.phase === "quiz") {
+    const d = plan.find((p) => p.day === rv.day);
+    return <MorningRunner key="review" day={d} review stepsOverride={rv.items} onBack={() => setRv(null)} onDone={() => { const n = rv.day; setRv(null); setSel(n); }} />;
+  }
   if (sel) {
     const d = plan.find((p) => p.day === sel);
-    return <MorningRunner day={d} onBack={() => setSel(null)} onDone={() => { setProg(M1Store.get("toeic_m1_prog", {})); setSel(null); }} />;
+    return <MorningRunner key={"day" + d.day} day={d} onBack={() => setSel(null)} onDone={() => { setProg(M1Store.get("toeic_m1_prog", {})); setSel(null); }} />;
   }
   const nextDay = (plan.find((p) => !prog[p.day]) || plan[plan.length - 1]).day;
   const doneN = plan.filter((p) => prog[p.day]).length;
+  const pendingWrong = collectReview(plan, nextDay).length;
   return (
     <div className="app">
       <Header title="🌅 아침 지하철 세트" onBack={onHome} meta={doneN + "/" + plan.length + "일"} />
       <div className="body">
-        <div className="explain" style={{ marginTop: 0 }}>1회 모의고사 오답 유형(한정사·부사·전치사·접속부사·어휘, P3·P4 세부, P7 목적·의도·추론)으로 만든 하루 12문항 · 약 10~12분 세트입니다. P5 4 → P6 2 → P7 2 → P2 2(음성) → P3/P4 2(음성). 음성은 기기 TTS라 이어폰을 꽂아 두세요.</div>
-        <button className="btn primary" style={{ margin: "14px 0" }} onClick={() => setSel(nextDay)}>▶ 오늘은 Day {nextDay} 시작</button>
+        <div className="explain" style={{ marginTop: 0 }}>1회 모의고사 오답 유형(한정사·부사·전치사·접속부사·어휘, P3·P4 세부, P7 목적·의도·추론)으로 만든 하루 12문항 · 약 10~12분 세트입니다. 먼저 앞선 날 틀린 문제를 누적 복습(해설 확인 → 재풀이)한 뒤, P5 4 → P6 2 → P7 2 → P2 2(음성) → P3/P4 2(음성)을 풉니다. 음성은 기기 TTS라 이어폰을 꽂아 두세요.</div>
+        <button className="btn primary" style={{ margin: "14px 0" }} onClick={() => startDay(nextDay)}>▶ 오늘은 Day {nextDay} 시작{pendingWrong > 0 ? " (복습 " + pendingWrong + "문항 먼저)" : ""}</button>
         <div className="list">
           {plan.map((p) => (
-            <div key={p.day} className="list-item" onClick={() => setSel(p.day)}>
+            <div key={p.day} className="list-item" onClick={() => startDay(p.day)}>
               <div className="li-ic" style={{ background: prog[p.day] ? "var(--green)" : "var(--blue)" }}>{prog[p.day] ? "✓" : p.day}</div>
               <div><div className="li-tt">Day {p.day} · {p.title}</div><div className="li-sb">{prog[p.day] ? prog[p.day].right + "/" + prog[p.day].total + " 정답 · " : ""}{p.focus}</div></div>
               <div className="li-ar">›</div>
