@@ -295,6 +295,9 @@ create policy "sd_delete" on study_days for delete using (true);
 <body>
 <div id="root"></div>
 
+<script src="mock1_core.js"></script>
+<script src="mock1_plan_a.js"></script>
+<script src="mock1_plan_b.js"></script>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
 
@@ -2949,6 +2952,12 @@ function Home({ go }) {
           🚇 오늘의 학습 시작
           <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.85, marginTop: 4 }}>단어 20 → RC 10 → 실전 5 → LC 2파일</div>
         </button>
+        <button className="btn" onClick={() => go("morning")}
+          style={{ background: "linear-gradient(135deg,#f59e0b,#ea580c)", color: "#fff", padding: "18px", fontSize: "17px", marginBottom: "10px", boxShadow: "0 8px 20px rgba(234,88,12,0.22)" }}>
+          🌅 아침 지하철 세트 (1회 모의고사 맞춤)
+          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.9, marginTop: 4 }}>10일 · 하루 12문항 · 음성 포함</div>
+        </button>
+        <button className="btn ghost" onClick={() => go("m1report")} style={{ marginBottom: "16px" }}>📋 1회 모의고사 리포트 · 오답노트 (585점)</button>
         <div className="home-grid">
           <button className="home-btn" style={{ background: "linear-gradient(135deg,#3b82f6,#2563eb)" }} onClick={() => go("word")}>
             <div className="ic">📚</div><div className="nm">단어 학습</div><div className="ds">{WORDS.length}개 단어</div>
@@ -3119,6 +3128,339 @@ function StudyCalendar({ onHome, go }) {
   );
 }
 
+// ===================== 1회 모의고사 맞춤 학습 =====================
+const M1 = () => window.MOCK1 || null;
+const M1Store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+
+// ---- TTS ----
+const Tts = {
+  ok() { return typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined"; },
+  voices() { try { return window.speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang)); } catch (e) { return []; } },
+  pick(gender) {
+    const vs = this.voices();
+    const us = vs.filter((v) => /en[-_]US/i.test(v.lang));
+    const pool = us.length ? us : vs;
+    const fRe = /samantha|zira|female|aria|jenny|susan|karen|victoria|siri.*female|google us english/i;
+    const mRe = /alex|david|daniel|mark|guy|male|fred|tom|aaron|siri.*male/i;
+    const re = gender === "f" ? fRe : mRe;
+    return pool.find((v) => re.test(v.name)) || (gender === "f" ? pool[0] : pool[pool.length > 1 ? 1 : 0]) || null;
+  },
+};
+let ttsToken = 0;
+function ttsStop() { ttsToken++; try { window.speechSynthesis.cancel(); } catch (e) {} }
+function ttsPlay(lines, rate, onEnd) {
+  if (!Tts.ok()) { onEnd && onEnd(); return; }
+  ttsStop();
+  const my = ttsToken;
+  const seq = lines.slice();
+  const next = () => {
+    if (my !== ttsToken) return;
+    const it = seq.shift();
+    if (!it) { onEnd && onEnd(); return; }
+    if (it.pause) { setTimeout(next, it.pause); return; }
+    const u = new SpeechSynthesisUtterance(it.t);
+    u.lang = "en-US";
+    u.rate = rate || 0.95;
+    const v = Tts.pick(it.v === "f" ? "f" : "m");
+    if (v) u.voice = v;
+    u.pitch = it.v === "f" ? 1.15 : 0.85;
+    u.onend = next;
+    u.onerror = next;
+    try { window.speechSynthesis.speak(u); } catch (e) { next(); }
+  };
+  next();
+}
+function TtsPlayer({ lines, label, hint }) {
+  const [playing, setPlaying] = useState(false);
+  const [rate, setRate] = useState(0.95);
+  const [plays, setPlays] = useState(0);
+  useEffect(() => () => ttsStop(), []);
+  useEffect(() => { ttsStop(); setPlaying(false); setPlays(0); }, [label]);
+  if (!Tts.ok()) return <div className="explain no">이 브라우저는 음성 재생(TTS)을 지원하지 않아요. 아래 '스크립트 보기'로 읽으며 풀어 주세요.</div>;
+  const toggle = () => {
+    if (playing) { ttsStop(); setPlaying(false); return; }
+    setPlaying(true); setPlays((n) => n + 1);
+    ttsPlay(lines, rate, () => setPlaying(false));
+  };
+  return (
+    <div className="player">
+      <div className="ptitle">🎧 {label}</div>
+      <div className="psub">{hint || "재생 버튼을 누르세요"} · {plays}회 재생</div>
+      <div className="ctrls">
+        <button className="pbtn" onClick={() => setRate(rate > 0.8 ? 0.75 : rate > 0.9 ? 0.95 : 1.05)} style={{ minWidth: 64 }}>{rate.toFixed(2)}x</button>
+        <button className="pbtn play" onClick={toggle} aria-label="재생">{playing ? "⏸" : "▶"}</button>
+        <button className="pbtn" onClick={() => setRate(rate < 0.9 ? 0.95 : rate < 1 ? 1.05 : 0.75)}>속도</button>
+      </div>
+    </div>
+  );
+}
+
+// ---- 리포트 ----
+function M1Report({ onHome, go }) {
+  const m = M1();
+  const [tab, setTab] = useState("score");
+  const [sub, setSub] = useState("gram");
+  const [lcAns, setLcAns] = useState(() => M1Store.get("toeic_m1_lcans", {}));
+  const setAns = (id, v) => { const n = Object.assign({}, lcAns, { [id]: v }); setLcAns(n); M1Store.set("toeic_m1_lcans", n); };
+  if (!m) return <div className="app"><Header title="1회 리포트" onBack={onHome} /><div className="body"><div className="empty">데이터를 불러오지 못했어요.</div></div></div>;
+  const meta = m.meta;
+  const bar = (p) => (p >= 80 ? "var(--green)" : p >= 60 ? "var(--orange)" : "var(--red)");
+  return (
+    <div className="app">
+      <Header title="📋 1회 모의고사 리포트" onBack={onHome} meta={meta.total.est + "점"} />
+      <div className="body">
+        <div className="tabs">
+          <button className={"tab " + (tab === "score" ? "active" : "")} onClick={() => setTab("score")}>성적·강약점</button>
+          <button className={"tab " + (tab === "wrong" ? "active" : "")} onClick={() => setTab("wrong")}>오답노트</button>
+        </div>
+        {tab === "score" && (
+          <div>
+            <div className="result" style={{ padding: "6px 0 0" }}>
+              <div className="score-row">
+                <div className="sc"><div className="n" style={{ color: "var(--orange)" }}>{meta.lc.est}</div><div className="l">LC {meta.lc.right}/{meta.lc.total}</div></div>
+                <div className="sc"><div className="n" style={{ color: "var(--green)" }}>{meta.rc.est}</div><div className="l">RC {meta.rc.right}/{meta.rc.total}</div></div>
+                <div className="sc"><div className="n" style={{ color: "var(--navy)" }}>{meta.total.est}</div><div className="l">합계</div></div>
+              </div>
+            </div>
+            <div className="group-title">파트별 정답률</div>
+            {m.parts.map((p) => {
+              const pc = Math.round((p.right / p.total) * 100);
+              return (
+                <div key={p.k} style={{ marginBottom: 10 }}>
+                  <div className="prog-label"><span>{p.name}</span><span>{p.right}/{p.total} · {pc}%</span></div>
+                  <div className="prog" style={{ marginBottom: 0 }}><div style={{ width: pc + "%", background: bar(pc) }} /></div>
+                </div>
+              );
+            })}
+            <div className="group-title">Part 7 구간별</div>
+            {m.p7Zones.map((z) => (
+              <div key={z.name} className="notif-toggle"><div className="nt-label">{z.name}</div><div style={{ fontWeight: 800 }}>{z.right}/{z.total}</div></div>
+            ))}
+            <div className="group-title">강점</div>
+            {m.strengths.map((s, i) => <div key={i} className="explain ok" style={{ marginTop: 8 }}>{s}</div>)}
+            <div className="group-title">약점</div>
+            {m.weaknesses.map((w, i) => <div key={i} className="explain no" style={{ marginTop: 8 }}><b>{w.t}</b><br />{w.d}</div>)}
+            <div className="group-title">실전 전략</div>
+            {m.actions.map((a, i) => <div key={i} className="explain" style={{ marginTop: 8 }}>{a}</div>)}
+            <div className="explain" style={{ marginTop: 12, fontSize: 12 }}>{meta.note}</div>
+            <button className="btn primary" style={{ marginTop: 14 }} onClick={() => go("morning")}>🌅 아침 지하철 10일 세트 시작</button>
+          </div>
+        )}
+        {tab === "wrong" && (
+          <div>
+            <div className="tabs" style={{ background: "#eef1f6" }}>
+              <button className={"tab " + (sub === "gram" ? "active" : "")} onClick={() => setSub("gram")}>P5·6 ({m.wrongGram.length})</button>
+              <button className={"tab " + (sub === "p7" ? "active" : "")} onClick={() => setSub("p7")}>P7 ({m.wrong7.length})</button>
+              <button className={"tab " + (sub === "lc" ? "active" : "")} onClick={() => setSub("lc")}>LC ({m.wrongLC.length})</button>
+            </div>
+            {sub === "gram" && m.wrongGram.map((g) => (
+              <div key={g.id} className="wcard">
+                <span className="chip">{g.part} {g.no}번 · {g.type}</span>
+                <div className="wq">{g.q}</div>
+                <div className="wline">{g.o.map((o, i) => <span key={i} style={{ marginRight: 10, fontWeight: i === g.a ? 900 : 500, color: i === g.a ? "var(--green)" : "inherit" }}>({NUM[i]}) {o}</span>)}</div>
+                <div className="wline"><span className="lab">해설 </span>{g.why}</div>
+                <div className="wline"><span className="lab">💡 </span>{g.tip}</div>
+              </div>
+            ))}
+            {sub === "p7" && (
+              <div>
+                <div className="explain" style={{ marginBottom: 10, fontSize: 12 }}>지문은 저작권상 앱에 넣지 않고 문제 요지와 정답·해설만 정리했어요. 정답은 지문을 읽고 풀어 낸 값이라 일부(166·199번)는 확신도가 보통입니다.</div>
+                {m.wrong7.map((w) => (
+                  <div key={w.id} className="wcard">
+                    <span className="chip">{w.no}번 · {w.set} · {w.type}</span>
+                    <div className="wq">{w.stem}</div>
+                    <div className="wline"><span className="lab">정답 </span><b>({w.ans}) {w.ansText}</b></div>
+                    <div className="wline"><span className="lab">해설 </span>{w.why}</div>
+                    <div className="wline"><span className="lab">💡 </span>{w.tip}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {sub === "lc" && (
+              <div>
+                <div className="explain" style={{ marginBottom: 10, fontSize: 12 }}>LC는 음원이 없어 정답을 모르는 문항이 많아요. 해설집을 보고 정답을 눌러 두면 저장됩니다.</div>
+                {m.wrongLC.map((w) => {
+                  const known = w.ans || lcAns[w.id];
+                  return (
+                    <div key={w.id} className="wcard">
+                      <span className="chip">{w.part} {w.no}번 · {w.type}</span>
+                      <div className="wq">{w.stem}</div>
+                      <div className="wline" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <span className="lab">정답</span>
+                        {(w.part === "P2" ? ["A", "B", "C"] : ["A", "B", "C", "D"]).map((L) => (
+                          <button key={L} disabled={!!w.ans} onClick={() => setAns(w.id, L)} style={{ width: 30, height: 30, borderRadius: 8, border: "2px solid " + (known === L ? "var(--green)" : "var(--line)"), background: known === L ? "#e7f8f0" : "#fff", fontWeight: 800, fontFamily: "inherit" }}>{L}</button>
+                        ))}
+                      </div>
+                      <div className="wline"><span className="lab">💡 </span>{w.tip}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+      </div>
+    </div>
+  );
+}
+
+// ---- 아침 지하철 모드 ----
+function buildSteps(day) {
+  const steps = [];
+  day.p5.forEach((q, i) => steps.push({ sec: "P5 문법·어휘", id: "p5-" + i, q, ctx: null }));
+  day.p6.qs.forEach((q, i) => steps.push({ sec: "P6 장문 빈칸", id: "p6-" + i, q, ctx: { passage: day.p6.t } }));
+  day.p7.qs.forEach((q, i) => steps.push({ sec: "P7 독해", id: "p7-" + i, q, ctx: { passage: day.p7.t, title: day.p7.title } }));
+  day.p2.forEach((q, i) => {
+    const lines = [{ v: "m", t: q.q }, { pause: 900 }].concat(q.o.map((o, k) => [{ v: "f", t: ["A", "B", "C"][k] + "." }, { v: "f", t: o }, { pause: 700 }]).reduce((a, b) => a.concat(b), []));
+    steps.push({ sec: "P2 질의응답", id: "p2-" + i, q, p2: true, audio: { lines, label: "Part 2 · " + (i + 1) + "번" } });
+  });
+  day.lc.qs.forEach((q, i) => steps.push({ sec: day.lc.type.split(" ")[0] + " " + day.lc.type.split(" ").slice(1).join(" "), id: "lc-" + i, q, lc: day.lc, audio: { lines: day.lc.lines, label: day.lc.title, hint: "대화·담화를 먼저 읽고 보기 키워드를 확인하세요" } }));
+  return steps;
+}
+
+function MorningRunner({ day, onBack, onDone }) {
+  const { notify } = useContext(AppCtx);
+  const steps = useMemo(() => buildSteps(day), [day]);
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [res, setRes] = useState([]);
+  const [showScript, setShowScript] = useState(false);
+  const [fin, setFin] = useState(false);
+  const st = steps[i];
+  const pick = async (k) => {
+    if (picked != null) return;
+    setPicked(k);
+    const ok = k === st.q.a;
+    setRes((r) => r.concat([{ id: "d" + day.day + "-" + st.id, sec: st.sec, ok }]));
+    if (!ok) {
+      const w = M1Store.get("toeic_m1_wrong", []);
+      const key = "d" + day.day + "-" + st.id;
+      if (!w.includes(key)) { w.push(key); M1Store.set("toeic_m1_wrong", w); }
+      try {
+        if (sbClient) {
+          if (st.p2 || st.lc) await upsertWrong("wrong_lc", "question", st.q.q, { part: st.sec.split(" ")[0], file_name: "1회 맞춤 Day" + day.day, question: st.q.q, correct_answer: st.q.o[st.q.a], user_answer: st.q.o[k] });
+          else await upsertWrong("wrong_rc", "question", st.q.q, { chapter: "1회 맞춤 · " + st.q.type, question: st.q.q, correct_answer: st.q.o[st.q.a], user_answer: st.q.o[k] });
+        }
+      } catch (e) { notify("오답 저장 실패 (Supabase): " + (e.message || e), true); }
+    }
+  };
+  const next = () => {
+    ttsStop();
+    if (i + 1 >= steps.length) {
+      const prog = M1Store.get("toeic_m1_prog", {});
+      const right = res.filter((r) => r.ok).length;
+      prog[day.day] = { right, total: steps.length, at: Date.now() };
+      M1Store.set("toeic_m1_prog", prog);
+      Streak.mark();
+      setFin(true);
+      return;
+    }
+    setI(i + 1); setPicked(null); setShowScript(false);
+  };
+  useEffect(() => () => ttsStop(), []);
+  if (fin) {
+    const right = res.filter((r) => r.ok).length;
+    const secs = {};
+    res.forEach((r) => { secs[r.sec] = secs[r.sec] || { r: 0, t: 0 }; secs[r.sec].t++; if (r.ok) secs[r.sec].r++; });
+    return (
+      <div className="app"><Header title={"Day " + day.day + " 완료"} onBack={onDone} />
+        <div className="body"><div className="result">
+          <div className="em">{right >= steps.length * 0.8 ? "🎉" : "💪"}</div>
+          <h2>{right} / {steps.length} 정답</h2>
+          <div className="explain ok">오늘 학습 완료로 기록했어요 (스트릭 반영).</div>
+        </div>
+        {Object.keys(secs).map((s) => <div key={s} className="notif-toggle"><div className="nt-label">{s}</div><div style={{ fontWeight: 800 }}>{secs[s].r}/{secs[s].t}</div></div>)}
+        <button className="btn primary" style={{ marginTop: 16 }} onClick={onDone}>세트 목록으로</button></div></div>
+    );
+  }
+  const q = st.q;
+  const hidden = st.p2 && picked == null; // P2는 보기 문장을 숨김
+  const letters = ["A", "B", "C", "D"];
+  return (
+    <div className="app">
+      <Header title={"Day " + day.day + " · " + day.title} onBack={() => { ttsStop(); onBack(); }} meta={(i + 1) + "/" + steps.length} />
+      <div className="body" key={i}>
+        <ProgressBar cur={i + 1} total={steps.length} />
+        <span className="qtag" style={{ display: "inline-block", fontSize: 11, fontWeight: 800, color: "var(--blue)", background: "#eaf1ff", padding: "3px 10px", borderRadius: 999, marginBottom: 10 }}>{st.sec} · {q.type}</span>
+        {st.audio && <TtsPlayer lines={st.audio.lines} label={st.audio.label} hint={st.audio.hint} />}
+        {st.lc && st.lc.visual && (
+          <div className="notif-card"><div className="nc-title">{st.lc.visual.title}</div>
+            <table style={{ width: "100%", fontSize: 13.5, borderCollapse: "collapse" }}>
+              <thead><tr>{st.lc.visual.head.map((h) => <th key={h} style={{ textAlign: "left", padding: 6, borderBottom: "2px solid var(--line)" }}>{h}</th>)}</tr></thead>
+              <tbody>{st.lc.visual.rows.map((r, ri) => <tr key={ri}>{r.map((c, ci) => <td key={ci} style={{ padding: 6, borderBottom: "1px solid var(--line)" }}>{c}</td>)}</tr>)}</tbody>
+            </table></div>
+        )}
+        {st.ctx && st.ctx.passage && (
+          <div className="qbox" style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>{st.ctx.title && <b>[{st.ctx.title}]<br /></b>}{st.ctx.passage}</div>
+        )}
+        {!st.p2 && <div className="qbox"><div className="qtext">{q.q}</div></div>}
+        {st.p2 && <div className="explain" style={{ marginTop: 0, marginBottom: 12 }}>질문과 보기 A·B·C를 듣고 가장 알맞은 응답을 고르세요. 보기 문장은 답을 고르면 공개됩니다.</div>}
+        <div className="opts">
+          {q.o.map((o, k) => {
+            let cls = "opt";
+            if (picked != null) { if (k === q.a) cls += " correct"; else if (k === picked) cls += " wrong"; }
+            return (
+              <button key={k} className={cls} disabled={picked != null} onClick={() => pick(k)}>
+                <span className="ob">{letters[k]}</span><span>{hidden ? "(" + letters[k] + ")" : o}</span>
+              </button>
+            );
+          })}
+        </div>
+        {picked != null && (
+          <div className={"explain " + (picked === q.a ? "ok" : "no")}>
+            <b>{picked === q.a ? "정답!" : "오답"} 정답: ({letters[q.a]}) {q.o[q.a]}</b><br />{q.why}
+          </div>
+        )}
+        {picked != null && st.audio && (
+          <div style={{ marginTop: 10 }}>
+            <button className="btn ghost" style={{ padding: 10, fontSize: 13 }} onClick={() => setShowScript(!showScript)}>{showScript ? "스크립트 숨기기" : "스크립트 보기"}</button>
+            {showScript && <div className="explain" style={{ whiteSpace: "pre-wrap" }}>{(st.p2 ? [q.q].concat(q.o.map((o, k) => letters[k] + ". " + o)) : st.lc.lines.map((l) => (l.v === "f" ? "W: " : l.v === "m" ? "M: " : "") + l.t)).join("\n")}</div>}
+          </div>
+        )}
+        {picked != null && <button className="btn primary" style={{ marginTop: 14 }} onClick={next}>{i + 1 >= steps.length ? "결과 보기" : "다음 →"}</button>}
+      </div>
+    </div>
+  );
+}
+
+function MorningMode({ onHome, go }) {
+  const m = M1();
+  const [prog, setProg] = useState(() => M1Store.get("toeic_m1_prog", {}));
+  const [sel, setSel] = useState(null);
+  if (!m || !m.plan) return <div className="app"><Header title="아침 지하철" onBack={onHome} /><div className="body"><div className="empty">데이터를 불러오지 못했어요.</div></div></div>;
+  const plan = m.plan.slice().sort((a, b) => a.day - b.day);
+  if (sel) {
+    const d = plan.find((p) => p.day === sel);
+    return <MorningRunner day={d} onBack={() => setSel(null)} onDone={() => { setProg(M1Store.get("toeic_m1_prog", {})); setSel(null); }} />;
+  }
+  const nextDay = (plan.find((p) => !prog[p.day]) || plan[plan.length - 1]).day;
+  const doneN = plan.filter((p) => prog[p.day]).length;
+  return (
+    <div className="app">
+      <Header title="🌅 아침 지하철 세트" onBack={onHome} meta={doneN + "/" + plan.length + "일"} />
+      <div className="body">
+        <div className="explain" style={{ marginTop: 0 }}>1회 모의고사 오답 유형(한정사·부사·전치사·접속부사·어휘, P3·P4 세부, P7 목적·의도·추론)으로 만든 하루 12문항 · 약 10~12분 세트입니다. P5 4 → P6 2 → P7 2 → P2 2(음성) → P3/P4 2(음성). 음성은 기기 TTS라 이어폰을 꽂아 두세요.</div>
+        <button className="btn primary" style={{ margin: "14px 0" }} onClick={() => setSel(nextDay)}>▶ 오늘은 Day {nextDay} 시작</button>
+        <div className="list">
+          {plan.map((p) => (
+            <div key={p.day} className="list-item" onClick={() => setSel(p.day)}>
+              <div className="li-ic" style={{ background: prog[p.day] ? "var(--green)" : "var(--blue)" }}>{prog[p.day] ? "✓" : p.day}</div>
+              <div><div className="li-tt">Day {p.day} · {p.title}</div><div className="li-sb">{prog[p.day] ? prog[p.day].right + "/" + prog[p.day].total + " 정답 · " : ""}{p.focus}</div></div>
+              <div className="li-ar">›</div>
+            </div>
+          ))}
+        </div>
+        <button className="btn ghost mt8" onClick={() => go("m1report")}>📋 1회 리포트·오답노트 보기</button>
+        <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
+      </div>
+    </div>
+  );
+}
+
 // ===================== App =====================
 function App() {
   const [screen, setScreen] = useState("home");
@@ -3143,6 +3485,8 @@ function App() {
       {screen === "exam" && <MockExam onHome={home} />}
       {screen === "notif" && <NotifSettings onHome={home} />}
       {screen === "calendar" && <StudyCalendar onHome={home} go={go} />}
+      {screen === "morning" && <MorningMode onHome={home} go={go} />}
+      {screen === "m1report" && <M1Report onHome={home} go={go} />}
       {toast && <div className={"toast " + (toast.isErr ? "err" : "")}>{toast.msg}</div>}
     </AppCtx.Provider>
   );
