@@ -3145,8 +3145,11 @@ const M1Store = {
 const Tts = {
   ok() { return typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined"; },
   voices() { try { return window.speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang)); } catch (e) { return []; } },
+  saved(gender) { try { return localStorage.getItem("toeic_tts_" + gender) || ""; } catch (e) { return ""; } },
   pick(gender) {
     const vs = this.voices();
+    const sv = this.saved(gender);
+    if (sv) { const hit = vs.find((v) => v.name === sv); if (hit) return hit; }
     const us = vs.filter((v) => /en[-_]US/i.test(v.lang));
     let pool = us.length ? us : vs;
     // 기기에 내장된(로컬) 음성을 우선 사용: 네트워크 음성은 끊김·지지직 소리가 나기 쉬움
@@ -3194,23 +3197,57 @@ function TtsPlayer({ lines, label, hint }) {
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(0.95);
   const [plays, setPlays] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [voices, setVoices] = useState(() => Tts.voices());
+  const [sel, setSel] = useState(() => ({ m: Tts.saved("m"), f: Tts.saved("f") }));
   useEffect(() => () => ttsStop(), []);
   useEffect(() => { ttsStop(); setPlaying(false); setPlays(0); }, [label]);
+  useEffect(() => {
+    if (!Tts.ok()) return undefined;
+    const f = () => setVoices(Tts.voices());
+    try { window.speechSynthesis.addEventListener("voiceschanged", f); } catch (e) {}
+    f();
+    return () => { try { window.speechSynthesis.removeEventListener("voiceschanged", f); } catch (e) {} };
+  }, []);
   if (!Tts.ok()) return <div className="explain no">이 브라우저는 음성 재생(TTS)을 지원하지 않아요. 아래 '스크립트 보기'로 읽으며 풀어 주세요.</div>;
   const toggle = () => {
     if (playing) { ttsStop(); setPlaying(false); return; }
     setPlaying(true); setPlays((n) => n + 1);
     ttsPlay(lines, rate, () => setPlaying(false));
   };
+  const choose = (g, name) => {
+    try { if (name) localStorage.setItem("toeic_tts_" + g, name); else localStorage.removeItem("toeic_tts_" + g); } catch (e) {}
+    setSel((x) => Object.assign({}, x, { [g]: name }));
+  };
+  const test = (g) => { ttsStop(); ttsPlay([{ v: g, t: g === "m" ? "Good morning. This is a sample of the male voice." : "Good morning. This is a sample of the female voice." }], rate); };
+  const opt = (v) => <option key={v.name} value={v.name}>{v.name} ({v.lang}{v.localService ? ", 기기 내장" : ", 온라인"})</option>;
   return (
     <div className="player">
       <div className="ptitle">🎧 {label}</div>
       <div className="psub">{hint || "재생 버튼을 누르세요"} · {plays}회 재생</div>
       <div className="ctrls">
-        <button className="pbtn" onClick={() => setRate(rate > 0.8 ? 0.75 : rate > 0.9 ? 0.95 : 1.05)} style={{ minWidth: 64 }}>{rate.toFixed(2)}x</button>
+        {[0.8, 0.95, 1.05].map((r) => <button key={r} className="pbtn" style={{ background: rate === r ? "var(--blue)" : undefined }} onClick={() => setRate(r)}>{r}x</button>)}
         <button className="pbtn play" onClick={toggle} aria-label="재생">{playing ? "⏸" : "▶"}</button>
-        <button className="pbtn" onClick={() => setRate(rate < 0.9 ? 0.95 : rate < 1 ? 1.05 : 0.75)}>속도</button>
       </div>
+      <div style={{ textAlign: "center", marginTop: 10 }}>
+        <button className="pbtn" style={{ fontSize: 12 }} onClick={() => setOpen(!open)}>🔊 음성 설정{open ? " 닫기" : ""}</button>
+      </div>
+      {open && (
+        <div style={{ marginTop: 10, fontSize: 12.5 }}>
+          <div style={{ marginBottom: 6, color: "#b9c3da" }}>남자 음성이 지직거리면 다른 음성을 골라 [테스트]로 들어 보세요. '기기 내장' 음성이 대체로 깨끗해요. 선택은 이 기기에 저장됩니다.</div>
+          {[["m", "남자"], ["f", "여자"]].map((g) => (
+            <div key={g[0]} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+              <span style={{ width: 34, fontWeight: 800 }}>{g[1]}</span>
+              <select value={sel[g[0]]} onChange={(e) => choose(g[0], e.target.value)} style={{ flex: 1, minWidth: 0, padding: 6, borderRadius: 8, fontFamily: "inherit" }}>
+                <option value="">자동 선택</option>
+                {voices.map(opt)}
+              </select>
+              <button className="pbtn" onClick={() => test(g[0])}>테스트</button>
+            </div>
+          ))}
+          {voices.length === 0 && <div style={{ color: "#fca5a5" }}>이 기기에서 영어 음성 목록을 찾지 못했어요. 기기 설정(접근성/텍스트 음성 변환)에서 영어 음성을 설치해 주세요.</div>}
+        </div>
+      )}
     </div>
   );
 }
