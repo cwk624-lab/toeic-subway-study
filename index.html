@@ -299,6 +299,7 @@ create policy "sd_delete" on study_days for delete using (true);
 <script src="mock1_plan_a.js"></script>
 <script src="mock1_plan_b.js"></script>
 <script src="mock1_plan_c.js"></script>
+<script src="mock1_p7pool.js"></script>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
 
@@ -3386,6 +3387,12 @@ function collectReview(plan, upto) {
     if (d.day >= upto) return;
     buildSteps(d).forEach((st) => { if (wrong.includes(st.key)) out.push(st); });
   });
+  ((M1() || {}).p7pool || []).forEach((pp) => {
+    pp.qs.forEach((q, k) => {
+      const key = "pp-" + pp.id + "-" + k;
+      if (wrong.includes(key)) out.push({ sec: "P7 독해", id: key, key, q, ctx: { passage: pp.t, title: pp.title } });
+    });
+  });
   return out;
 }
 
@@ -3581,7 +3588,7 @@ function exprFor(type) {
   return found.length ? found : [EXPR_BANK[0], EXPR_BANK[1]];
 }
 
-function P7Timed({ days, onDone }) {
+function P7Timed({ items, onDone }) {
   const [pi, setPi] = useState(0);
   const [limit, setLimit] = useState(150);
   const [started, setStarted] = useState(false);
@@ -3591,7 +3598,7 @@ function P7Timed({ days, onDone }) {
   const [used, setUsed] = useState(0);
   const [memos, setMemos] = useState({});
   const [tally, setTally] = useState({ r: 0, t: 0 });
-  const day = days[pi];
+  const day = items[pi];
   useEffect(() => {
     if (!started || submitted) return undefined;
     const id = setInterval(() => setLeft((x) => x - 1), 1000);
@@ -3604,30 +3611,30 @@ function P7Timed({ days, onDone }) {
     setUsed(limit - left);
     const wrongList = M1Store.get("toeic_m1_wrong", []);
     let r = 0;
-    day.p7.qs.forEach((q, k) => {
-      const key = "d" + day.day + "-p7-" + k;
+    day.qs.forEach((q, k) => {
+      const key = day.keyOf(k);
       const ok = picks[k] === q.a;
       if (ok) { r++; const ix = wrongList.indexOf(key); if (ix >= 0) wrongList.splice(ix, 1); }
       else if (!wrongList.includes(key)) wrongList.push(key);
     });
     M1Store.set("toeic_m1_wrong", wrongList);
     const all = M1Store.get("toeic_m1_memo", {});
-    Object.keys(memos).forEach((k) => { if (memos[k]) all["d" + day.day + "-p7-" + k] = memos[k]; });
+    Object.keys(memos).forEach((k) => { if (memos[k]) all[day.keyOf(k)] = memos[k]; });
     M1Store.set("toeic_m1_memo", all);
-    setTally((t) => ({ r: t.r + r, t: t.t + day.p7.qs.length }));
+    setTally((t) => ({ r: t.r + r, t: t.t + day.qs.length }));
   };
   const next = () => {
-    if (pi + 1 >= days.length) { onDone(tally); return; }
+    if (pi + 1 >= items.length) { onDone(tally); return; }
     setPi(pi + 1); setStarted(false); setSubmitted(false); setPicks([null, null]); setMemos({}); setLeft(limit);
   };
   const L = ["A", "B", "C", "D"];
   return (
     <div className="body" key={pi}>
-      <ProgressBar cur={pi + 1} total={days.length} />
+      <ProgressBar cur={pi + 1} total={items.length} />
       <div className="exam-timer">
         <span className="t-label">⏱ 제한</span>
         <span className="t-val" style={left < 0 ? { color: "var(--red)" } : null}>{fmt(started ? left : limit)}</span>
-        <span className="t-label">Day {day.day}</span>
+        <span className="t-label">{day.label}</span>
       </div>
       {!started && !submitted && (
         <div>
@@ -3640,8 +3647,8 @@ function P7Timed({ days, onDone }) {
       )}
       {(started || submitted) && (
         <div>
-          <div className="qbox" style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}><b>[{day.p7.title}]</b>{"\n"}{day.p7.t}</div>
-          {day.p7.qs.map((q, k) => (
+          <div className="qbox" style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}><b>[{day.title}]</b>{"\n"}{day.t}</div>
+          {day.qs.map((q, k) => (
             <div key={k} style={{ marginBottom: 14 }}>
               <div className="qbox" style={{ marginBottom: 8 }}><span className="qtag" style={{ display: "inline-block", fontSize: 11, fontWeight: 800, color: "var(--blue)", background: "#eaf1ff", padding: "3px 10px", borderRadius: 999, marginBottom: 8 }}>{q.type}</span><div className="qtext">{q.q}</div></div>
               <div className="opts">
@@ -3663,7 +3670,7 @@ function P7Timed({ days, onDone }) {
           ))}
           {!submitted && <button className="btn primary" disabled={picks.some((p) => p == null)} onClick={submit}>제출하고 채점</button>}
           {submitted && <div className="explain" style={{ marginTop: 0 }}>소요 {fmt(used)} / 제한 {fmt(limit)} {used > limit ? "· 시간 초과 ⚠️ 연계·추론 문제는 먼저 넘기는 연습을 해 보세요" : "· 제한 시간 안에 마쳤어요 ✅"}</div>}
-          {submitted && <button className="btn primary" style={{ marginTop: 10 }} onClick={next}>{pi + 1 >= days.length ? "P7 연습 마치기" : "다음 지문 →"}</button>}
+          {submitted && <button className="btn primary" style={{ marginTop: 10 }} onClick={next}>{pi + 1 >= items.length ? "P7 연습 마치기" : "다음 지문 →"}</button>}
         </div>
       )}
     </div>
@@ -3807,7 +3814,6 @@ function EveningMode({ onHome, go }) {
   const doneDays = plan.filter((p) => prog[p.day]).map((p) => p.day);
   const [dayN, setDayN] = useState(() => (doneDays.length ? doneDays[doneDays.length - 1] : 1));
   const [view, setView] = useState(null);
-  if (!m || !plan.length) return <div className="app"><Header title="저녁 복기" onBack={onHome} /><div className="body"><div className="empty">데이터를 불러오지 못했어요.</div></div></div>;
   const day = plan.find((p) => p.day === dayN) || plan[0];
   const rec = (eve[todayK] || {});
   const mark = (k) => {
@@ -3817,15 +3823,32 @@ function EveningMode({ onHome, go }) {
     if (t.rv && t.p7 && t.sh) Streak.mark();
   };
   const reviewItems = collectReview(plan, 99);
-  const p7days = [day].concat(plan.filter((p) => p.day === day.day - 1));
+  const pool = useMemo(() => {
+    const out = ((m && m.p7pool) || []).map((pp) => ({ id: "pp-" + pp.id, title: pp.title, t: pp.t, qs: pp.qs, label: "새 지문", keyOf: (k) => "pp-" + pp.id + "-" + k }));
+    plan.forEach((d) => out.push({ id: "m" + d.day, title: d.p7.title, t: d.p7.t, qs: d.p7.qs, label: "Day " + d.day + " 복습", keyOf: (k) => "d" + d.day + "-p7-" + k }));
+    return out;
+  }, [m]);
+  const drawP7 = (force) => {
+    const st = M1Store.get("toeic_p7_daily", {});
+    if (!force && st.date === todayK && st.ids && st.ids.length) return st;
+    const ptr = st.ptr || 0;
+    const ids = [pool[ptr % pool.length].id, pool[(ptr + 1) % pool.length].id];
+    const ns = { date: todayK, ids, ptr: ptr + 2 };
+    M1Store.set("toeic_p7_daily", ns);
+    return ns;
+  };
+  const [p7pick, setP7pick] = useState(() => (m && plan.length ? drawP7(false) : { ids: [] }));
+  const p7items = p7pick.ids.map((id) => pool.find((x) => x.id === id)).filter(Boolean);
   const back = () => setView(null);
+  const notifyP7 = () => {};
+  if (!m || !plan.length) return <div className="app"><Header title="저녁 복기" onBack={onHome} /><div className="body"><div className="empty">데이터를 불러오지 못했어요.</div></div></div>;
 
   if (view === "rv") {
     if (!reviewItems.length) { return (<div className="app"><Header title="🔁 누적 오답 재풀이" onBack={back} /><div className="body"><div className="empty"><div className="e">🎉</div>복습할 오답이 없어요!</div><button className="btn primary" onClick={() => { mark("rv"); back(); }}>완료 처리하고 돌아가기</button></div></div>); }
     return <MorningRunner key="eve-rv" day={day} review stepsOverride={reviewItems} onBack={back} onDone={() => { mark("rv"); back(); }} />;
   }
   if (view === "p7") {
-    return (<div className="app"><Header title="⏱ P7 타이머 연습" onBack={back} /><P7Timed days={p7days} onDone={() => { mark("p7"); back(); }} /></div>);
+    return (<div className="app"><Header title="⏱ P7 타이머 연습" onBack={back} meta="오늘의 새 지문" /><P7Timed key={p7pick.ids.join("-")} items={p7items} onDone={() => { mark("p7"); back(); }} /></div>);
   }
   if (view === "sh") {
     return (<div className="app"><Header title={"🎧 LC 쉐도잉 · Day " + day.day} onBack={() => { ttsStop(); back(); }} /><Shadowing day={day} onDone={() => { mark("sh"); back(); }} /></div>);
@@ -3852,9 +3875,10 @@ function EveningMode({ onHome, go }) {
         <div className="group-title">오늘 저녁 순서</div>
         <div className="list">
           <Step k="rv" icon="1" title="누적 오답 재풀이" sub={reviewItems.length + "문항 남음 · 맞히면 목록에서 제거"} min={8} onClick={() => setView("rv")} />
-          <Step k="p7" icon="2" title="P7 타이머 연습" sub={"Day " + day.day + (day.day > 1 ? "·" + (day.day - 1) : "") + " 지문 · 근거 메모"} min={10} onClick={() => setView("p7")} />
+          <Step k="p7" icon="2" title="P7 타이머 연습" sub={"매일 새 지문 2개 · 근거 메모"} min={10} onClick={() => setView("p7")} />
           <Step k="sh" icon="3" title="LC 쉐도잉 복기" sub={"Day " + day.day + " · " + day.lc.title} min={15} onClick={() => setView("sh")} />
         </div>
+        <button className="btn ghost mt8" style={{ fontSize: 13, padding: 10 }} onClick={() => { setP7pick(drawP7(true)); notifyP7(); }}>🔄 P7 지문 다른 걸로 바꾸기</button>
         {allDone && <div className="explain ok">오늘 저녁 복기를 모두 마쳤어요! 🎉</div>}
         <button className="btn ghost mt8" onClick={() => go("m1report")}>📋 1회 리포트·오답노트</button>
         <button className="btn ghost mt8" onClick={onHome}>홈으로</button>
