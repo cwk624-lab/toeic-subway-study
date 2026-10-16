@@ -300,6 +300,8 @@ create policy "sd_delete" on study_days for delete using (true);
 <script src="mock1_plan_b.js"></script>
 <script src="mock1_plan_c.js"></script>
 <script src="mock1_p7pool.js"></script>
+<script src="mock1_words.js"></script>
+<script src="mock1_p4.js"></script>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
 
@@ -2957,12 +2959,12 @@ function Home({ go }) {
         <button className="btn" onClick={() => go("morning")}
           style={{ background: "linear-gradient(135deg,#f59e0b,#ea580c)", color: "#fff", padding: "18px", fontSize: "17px", marginBottom: "10px", boxShadow: "0 8px 20px rgba(234,88,12,0.22)" }}>
           🌅 아침 지하철 세트 (1회 모의고사 맞춤)
-          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.9, marginTop: 4 }}>10일 · 하루 20문항 · 음성 포함</div>
+          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.9, marginTop: 4 }}>출근길 20분 · 단어+문법+독해+듣기 · 음성 포함</div>
         </button>
         <button className="btn" onClick={() => go("evening")}
           style={{ background: "linear-gradient(135deg,#4338ca,#6d28d9)", color: "#fff", padding: "18px", fontSize: "17px", marginBottom: "10px", boxShadow: "0 8px 20px rgba(67,56,202,0.22)" }}>
           🌙 저녁 복기 모드 (P7 타이머 · LC 쉐도잉)
-          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.9, marginTop: 4 }}>오답 재풀이 → P7 → 쉐도잉 · 약 35분</div>
+          <div style={{ fontSize: "12px", fontWeight: 600, opacity: 0.9, marginTop: 4 }}>오답 재풀이 → 단어 → P7 → 쉐도잉 · 약 40분</div>
         </button>
         <button className="btn ghost" onClick={() => go("m1report")} style={{ marginBottom: "16px" }}>📋 1회 모의고사 리포트 · 오답노트 (585점)</button>
         <div className="home-grid">
@@ -3364,20 +3366,52 @@ function M1Report({ onHome, go }) {
 }
 
 // ---- 아침 지하철 모드 ----
-function buildSteps(day) {
-  const steps = [];
+function vocabSteps(day) {
+  const M = M1() || {};
+  const ws = (M.words || {})[day.day] || [];
+  const flat = [];
+  Object.keys(M.words || {}).sort((x, y) => x - y).forEach((d) => M.words[d].forEach((w) => flat.push(w)));
+  return ws.map((w, i) => {
+    const gi = flat.indexOf(w);
+    const wrongs = [];
+    for (let k = 1; wrongs.length < 3 && k < flat.length; k++) {
+      const c = flat[(gi + k * 7 + i * 3) % flat.length];
+      if (c.m !== w.m && !wrongs.includes(c.m)) wrongs.push(c.m);
+    }
+    const sh = (i + day.day) % 4;
+    let o = [w.m].concat(wrongs);
+    o = o.slice(sh).concat(o.slice(0, sh)) ; // 정답 위치 분산
+    const q = { q: w.w, o, a: o.indexOf(w.m), type: "단어", why: w.m + " — " + w.ex };
+    return { sec: "단어", id: "v-" + i, q, vocab: w, ctx: null };
+  });
+}
+
+// 전체 문항(핵심 + 추가). extra: true 는 '더 풀기'에서만 나온다
+function buildAllSteps(day) {
+  const M = M1() || {};
+  const steps = vocabSteps(day);
   day.p5.forEach((q, i) => steps.push({ sec: "P5 문법·어휘", id: "p5-" + i, q, ctx: null }));
-  (day.p5x || []).forEach((q, i) => steps.push({ sec: "P5 문법·어휘", id: "p5x-" + i, q, ctx: null }));
+  (day.p5x || []).forEach((q, i) => steps.push({ sec: "P5 문법·어휘", id: "p5x-" + i, q, ctx: null, extra: i >= 2 }));
   day.p6.qs.forEach((q, i) => steps.push({ sec: "P6 장문 빈칸", id: "p6-" + i, q, ctx: { passage: day.p6.t } }));
   day.p7.qs.forEach((q, i) => steps.push({ sec: "P7 독해", id: "p7-" + i, q, ctx: { passage: day.p7.t, title: day.p7.title } }));
   day.p2.concat(day.p2x || []).forEach((q, i) => {
     const lines = [{ v: "m", t: q.q }, { pause: 900 }].concat(q.o.map((o, k) => [{ v: "f", t: ["A", "B", "C"][k] + "." }, { v: "f", t: o }, { pause: 700 }]).reduce((a, b) => a.concat(b), []));
-    steps.push({ sec: "P2 질의응답", id: "p2-" + i, q, p2: true, audio: { lines, label: "Part 2 · " + (i + 1) + "번" } });
+    steps.push({ sec: "P2 질의응답", id: "p2-" + i, q, p2: true, extra: i >= 4, audio: { lines, label: "Part 2 · " + (i + 1) + "번" } });
   });
   day.lc.qs.concat(day.lcx ? [day.lcx] : []).forEach((q, i) => steps.push({ sec: day.lc.type.split(" ")[0] + " " + day.lc.type.split(" ").slice(1).join(" "), id: "lc-" + i, q, lc: day.lc, audio: { lines: day.lc.lines, label: day.lc.title, hint: "대화·담화를 먼저 읽고 보기 키워드를 확인하세요" } }));
-  steps.forEach((x) => { x.key = "d" + day.day + "-" + x.id; });
+  const p4 = (M.p4 || {})[day.day];
+  if (p4) p4.qs.forEach((q, i) => steps.push({ sec: "P4 담화", id: "lc4-" + i, q, lc: p4, audio: { lines: p4.lines, label: p4.title, hint: "담화 — 문제 키워드를 먼저 확인하세요" } }));
+  // 독해 추가: 새 P7 지문 1개
+  const pool = M.p7pool || [];
+  if (pool.length) {
+    const pp = pool[(pool.length - 1 - (day.day - 1) + pool.length * 4) % pool.length];
+    pp.qs.forEach((q, k) => steps.push({ sec: "P7 독해(추가)", id: "ppx-" + k, q, ctx: { passage: pp.t, title: pp.title }, extra: true, ppKey: "pp-" + pp.id + "-" + k }));
+  }
+  steps.forEach((x) => { x.key = x.ppKey || "d" + day.day + "-" + x.id; });
   return steps;
 }
+function buildSteps(day) { return buildAllSteps(day).filter((x) => !x.extra); }
+function extraSteps(day) { return buildAllSteps(day).filter((x) => x.extra); }
 
 // 누적 오답 복습: 앞선 날(day 미만)에서 틀린 문항을 다시 모은다
 function collectReview(plan, upto) {
@@ -3385,18 +3419,18 @@ function collectReview(plan, upto) {
   const out = [];
   plan.forEach((d) => {
     if (d.day >= upto) return;
-    buildSteps(d).forEach((st) => { if (wrong.includes(st.key)) out.push(st); });
+    buildAllSteps(d).forEach((st) => { if (wrong.includes(st.key)) out.push(st); });
   });
   ((M1() || {}).p7pool || []).forEach((pp) => {
     pp.qs.forEach((q, k) => {
       const key = "pp-" + pp.id + "-" + k;
-      if (wrong.includes(key)) out.push({ sec: "P7 독해", id: key, key, q, ctx: { passage: pp.t, title: pp.title } });
+      if (wrong.includes(key) && !out.some((x) => x.key === key)) out.push({ sec: "P7 독해", id: key, key, q, ctx: { passage: pp.t, title: pp.title } });
     });
   });
   return out;
 }
 
-function MorningRunner({ day, onBack, onDone, stepsOverride, review }) {
+function MorningRunner({ day, onBack, onDone, stepsOverride, review, extra, onExtra }) {
   const { notify } = useContext(AppCtx);
   const steps = useMemo(() => stepsOverride || buildSteps(day), [day]);
   const [i, setI] = useState(0);
@@ -3419,7 +3453,8 @@ function MorningRunner({ day, onBack, onDone, stepsOverride, review }) {
       if (!w.includes(key)) { w.push(key); M1Store.set("toeic_m1_wrong", w); }
       try {
         if (sbClient) {
-          if (st.p2 || st.lc) await upsertWrong("wrong_lc", "question", st.q.q, { part: st.sec.split(" ")[0], file_name: "1회 맞춤 Day" + day.day, question: st.q.q, correct_answer: st.q.o[st.q.a], user_answer: st.q.o[k] });
+          if (st.vocab) await upsertWrong("wrong_words", "word", st.vocab.w, { word: st.vocab.w, meaning: st.vocab.m, example: st.vocab.ex });
+          else if (st.p2 || st.lc) await upsertWrong("wrong_lc", "question", st.q.q, { part: st.sec.split(" ")[0], file_name: "1회 맞춤 Day" + day.day, question: st.q.q, correct_answer: st.q.o[st.q.a], user_answer: st.q.o[k] });
           else await upsertWrong("wrong_rc", "question", st.q.q, { chapter: "1회 맞춤 · " + st.q.type, question: st.q.q, correct_answer: st.q.o[st.q.a], user_answer: st.q.o[k] });
         }
       } catch (e) { notify("오답 저장 실패 (Supabase): " + (e.message || e), true); }
@@ -3429,12 +3464,12 @@ function MorningRunner({ day, onBack, onDone, stepsOverride, review }) {
     ttsStop();
     if (i + 1 >= steps.length) {
       const right = res.filter((r) => r.ok).length;
-      if (!review) {
+      if (!review && !extra) {
         const prog = M1Store.get("toeic_m1_prog", {});
         prog[day.day] = { right, total: steps.length, at: Date.now() };
         M1Store.set("toeic_m1_prog", prog);
-        Streak.mark();
       }
+      if (!review) Streak.mark();
       setFin(true);
       return;
     }
@@ -3446,14 +3481,15 @@ function MorningRunner({ day, onBack, onDone, stepsOverride, review }) {
     const secs = {};
     res.forEach((r) => { secs[r.sec] = secs[r.sec] || { r: 0, t: 0 }; secs[r.sec].t++; if (r.ok) secs[r.sec].r++; });
     return (
-      <div className="app"><Header title={review ? "복습 완료" : "Day " + day.day + " 완료"} onBack={onDone} />
+      <div className="app"><Header title={review ? "복습 완료" : extra ? "추가 학습 완료" : "Day " + day.day + " 완료"} onBack={() => onDone(false)} />
         <div className="body"><div className="result">
           <div className="em">{right >= steps.length * 0.8 ? "🎉" : "💪"}</div>
           <h2>{right} / {steps.length} 정답</h2>
           <div className="explain ok">{review ? "맞춘 문제는 오답 목록에서 빠지고, 틀린 문제는 다음 복습에 다시 나옵니다." : "오늘 학습 완료로 기록했어요 (스트릭 반영)."}</div>
         </div>
         {Object.keys(secs).map((s) => <div key={s} className="notif-toggle"><div className="nt-label">{s}</div><div style={{ fontWeight: 800 }}>{secs[s].r}/{secs[s].t}</div></div>)}
-        <button className="btn primary" style={{ marginTop: 16 }} onClick={onDone}>{review ? "다음 단계로 →" : "세트 목록으로"}</button></div></div>
+        {!review && !extra && onExtra && <button className="btn green" style={{ marginTop: 16 }} onClick={() => onDone(true)}>➕ 여유 있으면 더 풀기 (추가 문법·독해 · 약 6분)</button>}
+        <button className="btn primary" style={{ marginTop: 12 }} onClick={() => onDone(false)}>{review ? "다음 단계로 →" : "세트 목록으로"}</button></div></div>
     );
   }
   const q = st.q;
@@ -3461,7 +3497,7 @@ function MorningRunner({ day, onBack, onDone, stepsOverride, review }) {
   const letters = ["A", "B", "C", "D"];
   return (
     <div className="app">
-      <Header title={review ? "🔁 누적 오답 복습" : "Day " + day.day + " · " + day.title} onBack={() => { ttsStop(); onBack(); }} meta={(i + 1) + "/" + steps.length} />
+      <Header title={review ? "🔁 누적 오답 복습" : extra ? "➕ Day " + day.day + " 추가 학습" : "Day " + day.day + " · " + day.title} onBack={() => { ttsStop(); onBack(); }} meta={(i + 1) + "/" + steps.length} />
       <div className="body" key={i}>
         <ProgressBar cur={i + 1} total={steps.length} />
         <span className="qtag" style={{ display: "inline-block", fontSize: 11, fontWeight: 800, color: "var(--blue)", background: "#eaf1ff", padding: "3px 10px", borderRadius: 999, marginBottom: 10 }}>{st.sec} · {q.type}</span>
@@ -3476,7 +3512,13 @@ function MorningRunner({ day, onBack, onDone, stepsOverride, review }) {
         {st.ctx && st.ctx.passage && (
           <div className="qbox" style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>{st.ctx.title && <b>[{st.ctx.title}]<br /></b>}{st.ctx.passage}</div>
         )}
-        {!st.p2 && <div className="qbox"><div className="qtext">{q.q}</div></div>}
+        {st.vocab && (
+          <div className="qbox" style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 30, fontWeight: 900, color: "var(--navy)" }}>{q.q}</div>
+            <button className="btn ghost" style={{ marginTop: 10, padding: 8, fontSize: 13 }} onClick={() => ttsPlay([{ v: "f", t: q.q }, { pause: 500 }, { v: "f", t: st.vocab.ex }], 0.9)}>🔊 발음 · 예문 듣기</button>
+          </div>
+        )}
+        {!st.p2 && !st.vocab && <div className="qbox"><div className="qtext">{q.q}</div></div>}
         {st.p2 && <div className="explain" style={{ marginTop: 0, marginBottom: 12 }}>질문과 보기 A·B·C를 듣고 가장 알맞은 응답을 고르세요. 보기 문장은 답을 고르면 공개됩니다.</div>}
         <div className="opts">
           {q.o.map((o, k) => {
@@ -3511,10 +3553,11 @@ function MorningMode({ onHome, go }) {
   const [prog, setProg] = useState(() => M1Store.get("toeic_m1_prog", {}));
   const [sel, setSel] = useState(null);
   const [rv, setRv] = useState(null); // { day, items, phase: "cards" | "quiz" }
+  const [ex, setEx] = useState(null);
   if (!m || !m.plan) return <div className="app"><Header title="아침 지하철" onBack={onHome} /><div className="body"><div className="empty">데이터를 불러오지 못했어요.</div></div></div>;
   const plan = m.plan.slice().sort((a, b) => a.day - b.day);
   const startDay = (n) => {
-    const items = collectReview(plan, n);
+    const items = collectReview(plan, n).slice(0, 8); // 아침엔 최대 8문항, 나머지는 저녁 복기
     if (items.length) setRv({ day: n, items, phase: "cards" });
     else setSel(n);
   };
@@ -3544,9 +3587,13 @@ function MorningMode({ onHome, go }) {
     const d = plan.find((p) => p.day === rv.day);
     return <MorningRunner key="review" day={d} review stepsOverride={rv.items} onBack={() => setRv(null)} onDone={() => { const n = rv.day; setRv(null); setSel(n); }} />;
   }
+  if (ex) {
+    const d = plan.find((p) => p.day === ex);
+    return <MorningRunner key={"ex" + d.day} day={d} extra stepsOverride={extraSteps(d)} onBack={() => setEx(null)} onDone={() => setEx(null)} />;
+  }
   if (sel) {
     const d = plan.find((p) => p.day === sel);
-    return <MorningRunner key={"day" + d.day} day={d} onBack={() => setSel(null)} onDone={() => { setProg(M1Store.get("toeic_m1_prog", {})); setSel(null); }} />;
+    return <MorningRunner key={"day" + d.day} day={d} onExtra onBack={() => setSel(null)} onDone={(more) => { setProg(M1Store.get("toeic_m1_prog", {})); setSel(null); if (more === true) setEx(d.day); }} />;
   }
   const nextDay = (plan.find((p) => !prog[p.day]) || plan[plan.length - 1]).day;
   const doneN = plan.filter((p) => prog[p.day]).length;
@@ -3555,7 +3602,11 @@ function MorningMode({ onHome, go }) {
     <div className="app">
       <Header title="🌅 아침 지하철 세트" onBack={onHome} meta={doneN + "/" + plan.length + "일"} />
       <div className="body">
-        <div className="explain" style={{ marginTop: 0 }}>1회 모의고사 오답 유형(한정사·부사·전치사·접속부사·어휘, P3·P4 세부, P7 목적·의도·추론)에 시험에 자주 나오는 빈출 유형(품사 자리·관계사·수동태·준동사·비교급·시제·P2 의문사)을 더해 만든 하루 20문항 · 약 15분 세트입니다. 먼저 앞선 날 틀린 문제를 누적 복습(해설 확인 → 재풀이)한 뒤, P5 8 → P6 2 → P7 2 → P2 5(음성) → P3/P4 3(음성)을 풉니다. 빈출 유형 문제는 유형명에 "빈출"이 붙어요. 음성은 기기 TTS라 이어폰을 꽂아 두세요.</div>
+        <div className="explain" style={{ marginTop: 0 }}>
+          <b>출근길 20분 세트</b> — 약점 보완 + 기본기를 함께 다집니다.<br />
+          ① 앞선 날 오답 복습(최대 8문항, 해설 확인 → 재풀이) → ② 단어 8 → ③ P5 문법 6 → ④ P6 2 → ⑤ P7 2 → ⑥ P2 4 → ⑦ P3 3 → ⑧ P4 담화 3 (음성은 기기 TTS, 이어폰 권장).<br />
+          끝나면 <b>➕ 더 풀기</b>(P5 2 · P2 1 · P7 새 지문 1개, 약 6분)를 선택할 수 있어요. 유형명에 "빈출"이 붙은 문제는 시험에 자주 나오는 유형입니다.
+        </div>
         <button className="btn primary" style={{ margin: "14px 0" }} onClick={() => startDay(nextDay)}>▶ 오늘은 Day {nextDay} 시작{pendingWrong > 0 ? " (복습 " + pendingWrong + "문항 먼저)" : ""}</button>
         <div className="list">
           {plan.map((p) => (
@@ -3687,12 +3738,15 @@ function Shadowing({ day, onDone }) {
   const [rec, setRec] = useState({ on: false, url: null, err: null });
   const recRef = useRef(null);
   const autoTok = useRef(0);
+  const p4 = (M1().p4 || {})[day.day];
   const lines = useMemo(() => {
-    const base = day.lc.lines.map((l) => ({ v: l.v, t: l.t, tag: day.lc.title }));
+    const base = day.lc.lines.map((l) => ({ v: l.v, t: l.t, tag: "P3 · " + day.lc.title }))
+      .concat(p4 ? p4.lines.slice(0, 5).map((l) => ({ v: l.v, t: l.t, tag: "P4 · " + p4.title })) : []);
     const p2 = day.p2.concat(day.p2x || []).slice(0, 3).reduce((acc, q) => acc.concat([{ v: "m", t: q.q, tag: "P2 질문" }, { v: "f", t: q.o[q.a], tag: "P2 정답 응답" }]), []);
     return base.concat(p2);
   }, [day]);
   const qsAll = day.lc.qs.concat(day.lcx ? [day.lcx] : []);
+  const sets = [{ title: day.lc.title, lines: day.lc.lines, qs: qsAll, visual: day.lc.visual, tag: "P3" }].concat(p4 ? [{ title: p4.title, lines: p4.lines, qs: p4.qs, visual: p4.visual, tag: "P4" }] : []);
   useEffect(() => () => { ttsStop(); autoTok.current++; try { recRef.current && recRef.current.state === "recording" && recRef.current.stop(); } catch (e) {} }, []);
   useEffect(() => { ttsStop(); autoTok.current++; setAuto(false); setTurn(false); setIdx(0); }, [phase]);
 
@@ -3728,7 +3782,7 @@ function Shadowing({ day, onDone }) {
   const stopRec = () => { try { recRef.current && recRef.current.stop(); } catch (e) {} };
 
   const phases = ["① 키워드 듣기", "② 스크립트 듣기", "③ 쉐도잉", "④ 표현 복기"];
-  const types = Array.from(new Set(qsAll.map((q) => q.type))).join(" ") + " " + day.lc.type;
+  const types = Array.from(new Set(sets.reduce((a, st) => a.concat(st.qs), []).map((q) => q.type))).join(" ") + " " + day.lc.type + (p4 ? " " + p4.type : "");
   const bank = exprFor(types);
   const L = ["A", "B", "C", "D"];
   return (
@@ -3737,27 +3791,37 @@ function Shadowing({ day, onDone }) {
       {phase === 0 && (
         <div>
           <div className="explain" style={{ marginTop: 0 }}>스크립트는 가리고 <b>문제와 보기 키워드부터</b> 읽은 뒤 듣습니다. 실전 순서 그대로예요.</div>
-          {day.lc.visual && <div className="notif-card" style={{ marginTop: 10 }}><div className="nc-title">{day.lc.visual.title}</div><table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}><thead><tr>{day.lc.visual.head.map((h) => <th key={h} style={{ textAlign: "left", padding: 5, borderBottom: "2px solid var(--line)" }}>{h}</th>)}</tr></thead><tbody>{day.lc.visual.rows.map((r, ri) => <tr key={ri}>{r.map((c, ci) => <td key={ci} style={{ padding: 5, borderBottom: "1px solid var(--line)" }}>{c}</td>)}</tr>)}</tbody></table></div>}
-          {qsAll.map((q, k) => (
-            <div key={k} className="wcard" style={{ marginTop: 10 }}>
-              <div className="wq">{k + 1}. {q.q}</div>
-              <div className="wline">{q.o.map((o, i) => <div key={i}>({L[i]}) {o}</div>)}</div>
+          {sets.map((st, si) => (
+            <div key={si}>
+              <div className="group-title">{st.tag} · {st.title}</div>
+              {st.visual && <div className="notif-card" style={{ marginTop: 6 }}><div className="nc-title">{st.visual.title}</div><table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}><thead><tr>{st.visual.head.map((h) => <th key={h} style={{ textAlign: "left", padding: 5, borderBottom: "2px solid var(--line)" }}>{h}</th>)}</tr></thead><tbody>{st.visual.rows.map((r, ri) => <tr key={ri}>{r.map((c, ci) => <td key={ci} style={{ padding: 5, borderBottom: "1px solid var(--line)" }}>{c}</td>)}</tr>)}</tbody></table></div>}
+              {st.qs.map((q, k) => (
+                <div key={k} className="wcard" style={{ marginTop: 10 }}>
+                  <div className="wq">{k + 1}. {q.q}</div>
+                  <div className="wline">{q.o.map((o, i) => <div key={i}>({L[i]}) {o}</div>)}</div>
+                </div>
+              ))}
+              <div style={{ marginTop: 12 }}><TtsPlayer lines={st.lines} label={st.tag + " · " + st.title} hint="핵심 동사·명사에 표시하며 들으세요" /></div>
             </div>
           ))}
-          <div style={{ marginTop: 12 }}><TtsPlayer lines={day.lc.lines} label={day.lc.title} hint="핵심 동사·명사에 표시하며 들으세요" /></div>
           <button className="btn primary" onClick={() => setPhase(1)}>다음: 스크립트 보며 듣기 →</button>
         </div>
       )}
       {phase === 1 && (
         <div>
           <div className="explain" style={{ marginTop: 0 }}>문장을 눌러 한 문장씩 들어 보세요. 못 들은 부분, 연음, 정답 근거 문장에 표시해 두세요.</div>
-          {day.lc.lines.map((l, i) => (
-            <button key={i} className="opt" style={{ width: "100%", marginTop: 8, alignItems: "flex-start" }} onClick={() => { speakLine(i); setPlays(plays + 1); }}>
-              <span className="ob">{l.v === "f" ? "W" : "M"}</span><span style={{ fontWeight: 600 }}>{l.t}</span>
-            </button>
+          {sets.map((st, si) => (
+            <div key={si}>
+              <div className="group-title">{st.tag} · {st.title}</div>
+              {st.lines.map((l, i) => (
+                <button key={i} className="opt" style={{ width: "100%", marginTop: 8, alignItems: "flex-start" }} onClick={() => { ttsPlay([{ v: l.v, t: l.t }], rate); setPlays(plays + 1); }}>
+                  <span className="ob">{l.v === "f" ? "W" : "M"}</span><span style={{ fontWeight: 600 }}>{l.t}</span>
+                </button>
+              ))}
+              <div className="group-title">정답과 근거</div>
+              {st.qs.map((q, k) => <div key={k} className="explain ok" style={{ marginTop: 8 }}><b>{k + 1}. ({L[q.a]}) {q.o[q.a]}</b><br />{q.why}</div>)}
+            </div>
           ))}
-          <div className="group-title">정답과 근거</div>
-          {qsAll.map((q, k) => <div key={k} className="explain ok" style={{ marginTop: 8 }}><b>{k + 1}. ({L[q.a]}) {q.o[q.a]}</b><br />{q.why}</div>)}
           <button className="btn primary" style={{ marginTop: 14 }} onClick={() => setPhase(2)}>다음: 쉐도잉 →</button>
         </div>
       )}
@@ -3805,6 +3869,71 @@ function Shadowing({ day, onDone }) {
   );
 }
 
+function VocabReview({ day, onDone }) {
+  const M = M1() || {};
+  const wrongKeys = M1Store.get("toeic_m1_wrong", []);
+  const items = useMemo(() => {
+    const out = [];
+    const seen = new Set();
+    const push = (w, d, i) => { if (!w || seen.has(w.w)) return; seen.add(w.w); out.push({ w, key: "d" + d + "-v-" + i }); };
+    ((M.words || {})[day.day] || []).forEach((w, i) => push(w, day.day, i));
+    Object.keys(M.words || {}).forEach((d) => M.words[d].forEach((w, i) => { if (wrongKeys.includes("d" + d + "-v-" + i)) push(w, d, i); }));
+    return out.slice(0, 14);
+  }, [day.day]);
+  const [phase, setPhase] = useState(0); // 0 카드 / 1 철자 입력
+  const [i, setI] = useState(0);
+  const [show, setShow] = useState(false);
+  const [txt, setTxt] = useState("");
+  const [res, setRes] = useState(null);
+  const [score, setScore] = useState(0);
+  const it = items[i];
+  const markWrong = (key, bad) => {
+    const w = M1Store.get("toeic_m1_wrong", []);
+    const ix = w.indexOf(key);
+    if (bad && ix < 0) w.push(key);
+    if (!bad && ix >= 0) w.splice(ix, 1);
+    M1Store.set("toeic_m1_wrong", w);
+  };
+  useEffect(() => () => ttsStop(), []);
+  if (!items.length) return <div className="body"><div className="empty">복습할 단어가 없어요.</div><button className="btn primary" onClick={() => onDone()}>완료</button></div>;
+  const speak = () => ttsPlay([{ v: "f", t: it.w.w }, { pause: 500 }, { v: "f", t: it.w.ex }], 0.9);
+  const blank = (ex, w) => ex.replace(new RegExp(w.replace(/[^a-z]/gi, "").slice(0, Math.max(3, w.length - 2)) + "[a-z]*", "i"), "_____");
+  const nextCard = () => { setShow(false); setTxt(""); setRes(null); if (i + 1 >= items.length) { if (phase === 0) { setPhase(1); setI(0); } else onDone({ score, total: items.length }); } else setI(i + 1); };
+  return (
+    <div className="body" key={phase + "-" + i}>
+      <div className="round-pills"><div className={"round-pill " + (phase === 0 ? "active" : "done")}>① 단어 카드</div><div className={"round-pill " + (phase === 1 ? "active" : "")}>② 철자 쓰기</div></div>
+      <ProgressBar cur={i + 1} total={items.length} />
+      {phase === 0 && (
+        <div>
+          <div className="card" onClick={() => setShow(true)} style={{ cursor: "pointer" }}>
+            <div className="word">{it.w.w}</div>
+            {show ? <div><div style={{ fontSize: 18, fontWeight: 800, marginTop: 12 }}>{it.w.m}</div><div className="ex">{it.w.ex}</div></div> : <div className="ex">눌러서 뜻 확인</div>}
+          </div>
+          <button className="btn ghost" style={{ marginBottom: 10 }} onClick={speak}>🔊 발음 · 예문 듣기</button>
+          {show ? (
+            <div className="toolbar"><button className="btn green" onClick={() => { markWrong(it.key, false); nextCard(); }}>알아요 ✅</button><button className="btn ghost" onClick={() => { markWrong(it.key, true); nextCard(); }}>헷갈려요 ❗</button></div>
+          ) : <button className="btn primary" onClick={() => setShow(true)}>뜻 보기</button>}
+        </div>
+      )}
+      {phase === 1 && (
+        <div>
+          <div className="qbox"><div className="qtext" style={{ textAlign: "center" }}>{it.w.m}</div><div className="wex" style={{ textAlign: "center", marginTop: 8 }}>{blank(it.w.ex, it.w.w)}</div></div>
+          <input value={txt} disabled={!!res} onChange={(e) => setTxt(e.target.value)} placeholder="영어 단어를 입력하세요" autoCapitalize="none" autoCorrect="off"
+            style={{ width: "100%", padding: 14, fontSize: 18, borderRadius: 12, border: "2px solid var(--line)", fontFamily: "inherit", marginBottom: 10 }} />
+          {!res ? (
+            <button className="btn primary" disabled={!txt.trim()} onClick={() => { const ok = txt.trim().toLowerCase() === it.w.w.toLowerCase(); setRes(ok ? "ok" : "no"); if (ok) setScore(score + 1); markWrong(it.key, !ok); }}>확인</button>
+          ) : (
+            <div>
+              <div className={"explain " + (res === "ok" ? "ok" : "no")}><b>{res === "ok" ? "정답!" : "정답: " + it.w.w}</b><br />{it.w.ex}</div>
+              <div className="toolbar" style={{ marginTop: 10 }}><button className="btn ghost" onClick={speak}>🔊</button><button className="btn primary" onClick={nextCard}>{i + 1 >= items.length ? "완료 ✅" : "다음 →"}</button></div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EveningMode({ onHome, go }) {
   const m = M1();
   const todayK = Streak._d(Date.now());
@@ -3820,7 +3949,7 @@ function EveningMode({ onHome, go }) {
     const n = Object.assign({}, eve, { [todayK]: Object.assign({}, eve[todayK] || {}, { [k]: true }) });
     setEve(n); M1Store.set("toeic_m1_eve", n);
     const t = n[todayK];
-    if (t.rv && t.p7 && t.sh) Streak.mark();
+    if (t.rv && t.vc && t.p7 && t.sh) Streak.mark();
   };
   const reviewItems = collectReview(plan, 99);
   const pool = useMemo(() => {
@@ -3847,6 +3976,9 @@ function EveningMode({ onHome, go }) {
     if (!reviewItems.length) { return (<div className="app"><Header title="🔁 누적 오답 재풀이" onBack={back} /><div className="body"><div className="empty"><div className="e">🎉</div>복습할 오답이 없어요!</div><button className="btn primary" onClick={() => { mark("rv"); back(); }}>완료 처리하고 돌아가기</button></div></div>); }
     return <MorningRunner key="eve-rv" day={day} review stepsOverride={reviewItems} onBack={back} onDone={() => { mark("rv"); back(); }} />;
   }
+  if (view === "vc") {
+    return (<div className="app"><Header title="🔤 단어 복습" onBack={back} /><VocabReview day={day} onDone={() => { mark("vc"); back(); }} /></div>);
+  }
   if (view === "p7") {
     return (<div className="app"><Header title="⏱ P7 타이머 연습" onBack={back} meta="오늘의 새 지문" /><P7Timed key={p7pick.ids.join("-")} items={p7items} onDone={() => { mark("p7"); back(); }} /></div>);
   }
@@ -3860,10 +3992,10 @@ function EveningMode({ onHome, go }) {
       <div className="li-ar">›</div>
     </div>
   );
-  const allDone = rec.rv && rec.p7 && rec.sh;
+  const allDone = rec.rv && rec.vc && rec.p7 && rec.sh;
   return (
     <div className="app">
-      <Header title="🌙 저녁 복기 모드" onBack={onHome} meta={allDone ? "완료 ✅" : "약 35분"} />
+      <Header title="🌙 저녁 복기 모드" onBack={onHome} meta={allDone ? "완료 ✅" : "약 40분"} />
       <div className="body">
         <div className="explain" style={{ marginTop: 0 }}>600점까지 남은 점수는 <b>P7 시간 배분</b>과 <b>P3·P4 세부 청취</b>에서 가장 빨리 나옵니다. 저녁에는 아침에 푼 내용을 복기하며 이 둘을 집중해서 다집니다.</div>
         <div className="group-title">복기할 날 선택 (기본: 마지막으로 푼 Day)</div>
@@ -3875,8 +4007,9 @@ function EveningMode({ onHome, go }) {
         <div className="group-title">오늘 저녁 순서</div>
         <div className="list">
           <Step k="rv" icon="1" title="누적 오답 재풀이" sub={reviewItems.length + "문항 남음 · 맞히면 목록에서 제거"} min={8} onClick={() => setView("rv")} />
-          <Step k="p7" icon="2" title="P7 타이머 연습" sub={"매일 새 지문 2개 · 근거 메모"} min={10} onClick={() => setView("p7")} />
-          <Step k="sh" icon="3" title="LC 쉐도잉 복기" sub={"Day " + day.day + " · " + day.lc.title} min={15} onClick={() => setView("sh")} />
+          <Step k="vc" icon="2" title="단어 복습 · 철자 쓰기" sub={"Day " + day.day + " 단어 + 헷갈린 단어"} min={7} onClick={() => setView("vc")} />
+          <Step k="p7" icon="3" title="P7 타이머 연습" sub={"매일 새 지문 2개 · 근거 메모"} min={10} onClick={() => setView("p7")} />
+          <Step k="sh" icon="4" title="LC 쉐도잉 복기" sub={"Day " + day.day + " · P3 대화 + P4 담화 + P2"} min={15} onClick={() => setView("sh")} />
         </div>
         <button className="btn ghost mt8" style={{ fontSize: 13, padding: 10 }} onClick={() => { setP7pick(drawP7(true)); notifyP7(); }}>🔄 P7 지문 다른 걸로 바꾸기</button>
         {allDone && <div className="explain ok">오늘 저녁 복기를 모두 마쳤어요! 🎉</div>}
